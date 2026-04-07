@@ -9,12 +9,16 @@ The system uses a **Time-Series LSTM / CNN-LSTM hybrid** architecture to disting
 ## 🛠️ Project Structure
 
 - `config.py`: Centralized configuration for hyperparameters, serial ports, and feature mappings.
-- `model.py`: PyTorch implementation of the `EEGClassifier` (LSTM and CNN-LSTM options).
+- `model.py`: PyTorch implementation of the `EEGClassifier` (Advanced CNN-Bi-LSTM + Attention).
 - `collect_data.py`: Interactive serial data capture and labeling for training datasets.
 - `preprocess.py`: Automated window generation (sliding window), normalization, and train/val/test splitting.
 - `train.py`: High-performance training pipeline with learning rate scheduling and early stopping.
 - `evaluate.py`: Post-training evaluation with confusion matrix heatmaps and classification reports.
 - `predict_realtime.py`: Real-time inference engine that feeds live EEG data into the model and outputs hardware commands.
+- `notebooks/`: **(NEW)** Interative Jupyter Notebooks for project development:
+    - `01_data_exploration.ipynb`: Visualize raw EEG signals and feature distributions.
+    - `02_model_experiments.ipynb`: Prototype and compare different model architectures.
+    - `03_results_analysis.ipynb`: Deep-dive into model errors and confusion matrices.
 
 ---
 

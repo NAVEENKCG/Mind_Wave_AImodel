@@ -29,19 +29,19 @@ VAL_SPLIT = 0.1
 TEST_SPLIT = 0.1
 
 # --- Model Architecture ---
-USE_CNN_LSTM = False  # Toggle between LSTM and CNN-LSTM
-HIDDEN_SIZE_1 = 64
-HIDDEN_SIZE_2 = 32
-DROPOUT = 0.3
+USE_CNN_LSTM = True  # Toggle between LSTM and CNN-LSTM (Now used as the default)
+HIDDEN_SIZE_1 = 128  # Increased for Bi-LSTM complexity
+HIDDEN_SIZE_2 = 64   # Secondary dense layer size
+DROPOUT = 0.4        # Slightly higher dropout for regularization
 
 # --- Training Hyperparameters ---
-BATCH_SIZE = 32
-EPOCHS = 100
-LEARNING_RATE = 0.001
+BATCH_SIZE = 64      # Larger batch for batch norm stability
+EPOCHS = 150
+LEARNING_RATE = 2e-4 # Lower learning rate for more stable convergence of complex model
 WEIGHT_DECAY = 1e-4
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-EARLY_STOPPING_PATIENCE = 15
-SCHEDULER_PATIENCE = 5
+EARLY_STOPPING_PATIENCE = 20
+SCHEDULER_PATIENCE = 8
 SEED = 42
 
 # --- Real-time Settings ---
