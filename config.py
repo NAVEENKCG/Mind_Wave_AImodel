@@ -1,61 +1,65 @@
-import torch
-import os
+from pathlib import Path
 
-# --- Hardware / Serial Settings ---
-SERIAL_PORT = "COM3"  # Update to your TGAM COM port (e.g., COM3 on Win, /dev/ttyUSB0 on Linux)
+# Project Paths
+ROOT_DIR = Path(__file__).resolve().parent
+DATA_DIR = ROOT_DIR / "data"
+MODELS_DIR = ROOT_DIR / "models"
+LOGS_DIR = ROOT_DIR / "logs"
+RESULTS_DIR = ROOT_DIR / "results"
+
+# Serial Communication
+SERIAL_PORT = "COM3"
 BAUD_RATE = 57600
-WHEELCHAIR_PORT = None  # COM port for wheelchair ESP32 if sending commands
+WHEELCHAIR_PORT = "COM5"
+WHEELCHAIR_BAUD = 115200
 
-# --- Data Settings ---
-FEATURES = [
-    "delta", "theta", "lowAlpha", "highAlpha", "lowBeta", 
-    "highBeta", "lowGamma", "highGamma", "attention", "meditation", "blink"
-]
-NUM_FEATURES = len(FEATURES)
-CLASSES = {
+# Model Configuration
+USE_CNN_LSTM = True  # Flag to switch between architectures
+SEED = 42
+
+# Data Configuration
+TRAIN_WINDOW_SIZE = 30  # 3 seconds at 10Hz
+INFER_WINDOW_SIZE = 10  # 1 second for faster response
+STRIDE = 5              # 50% overlap for 10Hz (approx 0.5s)
+N_FEATURES_RAW = 11
+N_FEATURES_ENGINEERED = 18
+N_CLASSES = 5
+CLASS_NAMES = {
     0: "IDLE",
     1: "FORWARD",
     2: "LEFT",
     3: "RIGHT",
     4: "STOP"
 }
-NUM_CLASSES = len(CLASSES)
 
-# --- Preprocessing ---
-WINDOW_SIZE = 10  # 10 samples per window
-STRIDE = 1
-TRAIN_SPLIT = 0.8
-VAL_SPLIT = 0.1
-TEST_SPLIT = 0.1
-
-# --- Model Architecture ---
-USE_CNN_LSTM = True  # Toggle between LSTM and CNN-LSTM (Now used as the default)
-HIDDEN_SIZE_1 = 128  # Increased for Bi-LSTM complexity
-HIDDEN_SIZE_2 = 64   # Secondary dense layer size
-DROPOUT = 0.4        # Slightly higher dropout for regularization
-
-# --- Training Hyperparameters ---
-BATCH_SIZE = 64      # Larger batch for batch norm stability
+# Training Hyperparameters
 EPOCHS = 150
-LEARNING_RATE = 2e-4 # Lower learning rate for more stable convergence of complex model
+BATCH_SIZE = 32
+LEARNING_RATE = 0.001
 WEIGHT_DECAY = 1e-4
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-EARLY_STOPPING_PATIENCE = 20
-SCHEDULER_PATIENCE = 8
-SEED = 42
+PATIENCE = 20
 
-# --- Real-time Settings ---
-CONFIDENCE_THRESHOLD = 0.75
-PREDICTION_INTERVAL = 2.0  # Seconds between predictions
+# Inference & Control Logic
+CONFIDENCE_THRESHOLDS = {
+    0: 0.50,  # IDLE
+    1: 0.75,  # FORWARD
+    2: 0.80,  # LEFT
+    3: 0.80,  # RIGHT
+    4: 0.65   # STOP
+}
+HOLD_REQUIRED = 3  # Successive predictions needed
+COOLDOWN_SECONDS = {
+    1: 2.0,   # FORWARD
+    2: 3.0,   # LEFT
+    3: 3.0,   # RIGHT
+    4: 1.0    # STOP
+}
 
-# --- Paths ---
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-MODEL_DIR = os.path.join(BASE_DIR, "models")
-RAW_DATA_PATH = os.path.join(DATA_DIR, "raw_data.csv")
-BEST_MODEL_PATH = os.path.join(MODEL_DIR, "best_model.pth")
-SCALER_PATH = os.path.join(MODEL_DIR, "scaler.pkl")
-
-# Ensure directories exist
-os.makedirs(DATA_DIR, exist_ok=True)
-os.makedirs(MODEL_DIR, exist_ok=True)
+# Quality Filter Thresholds (during collection)
+QUALITY_FILTERS = {
+    1: {"attention": 65},
+    2: {"theta_dominant": True},
+    3: {"alpha_dominant": True},
+    4: {"meditation": 65},
+    0: {"no_dominant": True}
+}

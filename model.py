@@ -1,117 +1,154 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import config
+from typing import Optional
 
-class AttentionMechanism(nn.Module):
+class SelfAttention(nn.Module):
     """
-    Computes a weighted average of sequence hidden states.
+    Self-attention mechanism to learn the importance of different timesteps.
+    Used in the LSTM-based classifier.
     """
-    def __init__(self, hidden_dim):
-        super(AttentionMechanism, self).__init__()
-        self.attention = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim // 2),
-            nn.Tanh(),
-            nn.Linear(hidden_dim // 2, 1)
-        )
+    def __init__(self, hidden_size: int):
+        super(SelfAttention, self).__init__()
+        self.attention = nn.Linear(hidden_size, 1)
+    
+    def forward(self, lstm_output: torch.Tensor) -> torch.Tensor:
+        # lstm_output shape: [batch, seq_len, hidden_size]
+        weights = torch.softmax(self.attention(lstm_output), dim=1)
+        # weights shape: [batch, seq_len, 1]
+        context_vector = torch.sum(weights * lstm_output, dim=1)
+        # context_vector shape: [batch, hidden_size]
+        return context_vector
 
-    def forward(self, x):
-        # x shape: [batch, seq_len, hidden_dim]
-        weights = self.attention(x) # [batch, seq_len, 1]
-        weights = F.softmax(weights, dim=1)
-        
-        # Multiply weights by elements
-        context = torch.sum(x * weights, dim=1) # [batch, hidden_dim]
-        return context, weights
-
-class EEGClassifier(nn.Module):
+class EEGClassifier_LSTM(nn.Module):
     """
-    Advanced Time-Series Hybrid Model (CNN + Bi-LSTM + Attention)
-    Optimized for EEG signal classification.
+    LSTM-based EEG signal classifier with a self-attention mechanism.
     """
-    def __init__(self, use_cnn_lstm=config.USE_CNN_LSTM):
-        super(EEGClassifier, self).__init__()
-        self.use_cnn_lstm = use_cnn_lstm
+    def __init__(self, input_size: int = 18, hidden_size: int = 128, n_classes: int = 5):
+        super(EEGClassifier_LSTM, self).__init__()
         
-        # --- CNN Feature Extraction ---
-        # Input shape: [batch, num_features, seq_len]
-        self.conv_block = nn.Sequential(
-            nn.Conv1d(config.NUM_FEATURES, 32, kernel_size=3, padding=1),
-            nn.BatchNorm1d(32),
-            nn.ReLU(),
-            nn.MaxPool1d(kernel_size=2) if config.WINDOW_SIZE > 4 else nn.Identity(),
-            
-            nn.Conv1d(32, 64, kernel_size=3, padding=1),
-            nn.BatchNorm1d(64),
-            nn.ReLU(),
-        )
-        
-        # --- Recurrent Context Learning ---
-        # The LSTM input size will depend on the output depth of the CNN block
-        lstm_input_size = 64 if self.use_cnn_lstm else config.NUM_FEATURES
         self.lstm = nn.LSTM(
-            input_size=lstm_input_size,
-            hidden_size=config.HIDDEN_SIZE_1,
+            input_size=input_size,
+            hidden_size=hidden_size,
             num_layers=2,
-            batch_first=True,
+            dropout=0.3,
             bidirectional=True,
-            dropout=config.DROPOUT if 2 > 1 else 0
+            batch_first=True
         )
         
-        # Bidirectional means output is hidden_size * 2
-        lstm_out_dim = config.HIDDEN_SIZE_1 * 2
+        # Bidirectional doubling hidden_size (128 * 2 = 256)
+        self.attention = SelfAttention(hidden_size * 2)
         
-        # --- Attention Layer ---
-        self.attention = AttentionMechanism(lstm_out_dim)
+        self.bn = nn.BatchNorm1d(hidden_size * 2)
+        self.dropout_main = nn.Dropout(0.4)
         
-        # --- Final Classification ---
-        self.classifier = nn.Sequential(
-            nn.Linear(lstm_out_dim, config.HIDDEN_SIZE_2),
-            nn.ReLU(),
-            nn.Dropout(config.DROPOUT),
-            nn.Linear(config.HIDDEN_SIZE_2, config.NUM_CLASSES)
-        )
-            
-    def forward(self, x):
-        """
-        x: [batch, seq_len, features]
-        """
-        if self.use_cnn_lstm:
-            # Transpose for Conv1d: [batch, features, seq_len]
-            x = x.transpose(1, 2)
-            x = self.conv_block(x)
-            # Transpose back for LSTM: [batch, new_seq_len, features]
-            x = x.transpose(1, 2)
-            
-        # LSTM layer
-        # out: [batch, seq_len, hidden_dim * 2]
+        self.fc1 = nn.Linear(hidden_size * 2, 128)
+        self.relu1 = nn.ReLU()
+        self.dropout1 = nn.Dropout(0.3)
+        
+        self.fc2 = nn.Linear(128, 64)
+        self.relu2 = nn.ReLU()
+        self.dropout2 = nn.Dropout(0.2)
+        
+        self.classifier = nn.Linear(64, n_classes)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: [batch, 30, 18]
         lstm_out, _ = self.lstm(x)
+        # lstm_out: [batch, 30, 256]
         
-        # Apply Attention instead of just taking the last state
-        context, attn_weights = self.attention(lstm_out)
+        context = self.attention(lstm_out)
+        # context: [batch, 256]
         
-        # Classification
-        logits = self.classifier(context)
+        x = self.bn(context)
+        x = self.dropout_main(x)
+        
+        x = self.fc1(x)
+        x = self.relu1(x)
+        x = self.dropout1(x)
+        
+        x = self.fc2(x)
+        x = self.relu2(x)
+        x = self.dropout2(x)
+        
+        logits = self.classifier(x)
+        return logits
+
+class EEGClassifier_CNN_LSTM(nn.Module):
+    """
+    Hybrid CNN-LSTM architecture for EEG classification.
+    Processes features temporally with CNN first then LSTM.
+    """
+    def __init__(self, input_size: int = 18, n_classes: int = 5):
+        super(EEGClassifier_CNN_LSTM, self).__init__()
+        
+        # CNN Block 1
+        # Input: [batch, 18, 30] -> Conv produces [batch, 64, 30] -> Pool produces [batch, 64, 15]
+        self.conv1 = nn.Conv1d(in_channels=input_size, out_channels=64, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm1d(64)
+        self.relu1 = nn.ReLU()
+        self.pool = nn.MaxPool1d(kernel_size=2)
+        
+        # CNN Block 2
+        # Input: [batch, 64, 15] -> Conv produces [batch, 128, 15]
+        self.conv2 = nn.Conv1d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm1d(128)
+        self.relu2 = nn.ReLU()
+        
+        # LSTM
+        # Input for LSTM: [batch, 15, 128]
+        self.lstm = nn.LSTM(
+            input_size=128,
+            hidden_size=64,
+            num_layers=2,
+            dropout=0.3,
+            bidirectional=True,
+            batch_first=True
+        )
+        
+        # Classifier Head
+        self.head_bn = nn.BatchNorm1d(128) # 64 * 2
+        self.head_dropout1 = nn.Dropout(0.4)
+        self.fc_final = nn.Linear(128, 64)
+        self.relu_final = nn.ReLU()
+        self.head_dropout2 = nn.Dropout(0.3)
+        self.classifier = nn.Linear(64, n_classes)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: [batch, 30, 18]
+        
+        # Reshape for Conv1D: [batch, channels, length]
+        x = x.transpose(1, 2) # [batch, 18, 30]
+        
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu1(x)
+        x = self.pool(x) # [batch, 64, 15]
+        
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.relu2(x) # [batch, 128, 15]
+        
+        # Reshape for LSTM: [batch, length, channels]
+        x = x.transpose(1, 2) # [batch, 15, 128]
+        
+        lstm_out, _ = self.lstm(x) # [batch, 15, 128]
+        
+        # Global Average Pooling over time dimension
+        # x.mean(dim=1) -> [batch, 128]
+        x = torch.mean(lstm_out, dim=1)
+        
+        x = self.head_bn(x)
+        x = self.head_dropout1(x)
+        x = self.fc_final(x)
+        x = self.relu_final(x)
+        x = self.head_dropout2(x)
+        logits = self.classifier(x)
         
         return logits
 
-if __name__ == "__main__":
-    # Local config simulation for standalone testing
-    if not hasattr(config, 'NUM_FEATURES'):
-        config.NUM_FEATURES = 11
-        config.NUM_CLASSES = 5
-        config.WINDOW_SIZE = 10
-        config.HIDDEN_SIZE_1 = 64
-        config.HIDDEN_SIZE_2 = 32
-        config.DROPOUT = 0.3
-        config.USE_CNN_LSTM = True
-
-    # Test model with dummy input
-    test_input = torch.randn(2, 10, 11) # [batch, seq_len, features]
-    
-    print("Testing Advanced CNN-LSTM-Attention Model:")
-    model = EEGClassifier(use_cnn_lstm=True)
-    output = model(test_input)
-    print(f"Input shape: {test_input.shape}")
-    print(f"Output shape: {output.shape}") 
-    print("Success!")
+def get_model(use_cnn_lstm: bool = True, input_size: int = 18, n_classes: int = 5) -> nn.Module:
+    """Factory function to build selected model."""
+    if use_cnn_lstm:
+        return EEGClassifier_CNN_LSTM(input_size=input_size, n_classes=n_classes)
+    else:
+        return EEGClassifier_LSTM(input_size=input_size, n_classes=n_classes)

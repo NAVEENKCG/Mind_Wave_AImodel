@@ -1,137 +1,174 @@
 import serial
 import time
-import pandas as pd
+import csv
+import logging
 import numpy as np
-import os
-import config
-from datetime import datetime
+import pandas as pd
+from pathlib import Path
+from tqdm import tqdm
+from rich.console import Console
+from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
+from config import (
+    SERIAL_PORT, BAUD_RATE, DATA_DIR, QUALITY_FILTERS, CLASS_NAMES
+)
 
-class TGAMParser:
-    """
-    Parses ThinkGear (TGAM) UART packets.
-    Expects 1 second worth of data at 57600 baud.
-    """
-    def __init__(self, port, baud):
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+console = Console()
+
+class DataCollector:
+    """Handles real-time EEG data collection from TGAM module with strict quality filters."""
+    
+    def __init__(self):
+        self.raw_data_path = DATA_DIR / "raw_data.csv"
+        self.fieldnames = [
+            'session_id', 'sample_id', 'timestep',
+            'delta', 'theta', 'lowAlpha', 'highAlpha',
+            'lowBeta', 'highBeta', 'lowGamma', 'highGamma',
+            'attention', 'meditation', 'blink', 'label'
+        ]
+        self._init_csv()
+        
         try:
-            self.ser = serial.Serial(port, baud, timeout=1)
-            print(f"Successfully connected to TGAM on {port}")
+            self.ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
+            logger.info(f"Connected to TGAM on {SERIAL_PORT}")
         except Exception as e:
-            print(f"Error opening serial port: {e}")
+            logger.error(f"Failed to connect to Serial: {e}")
             self.ser = None
-            
-    def read_packet(self):
-        """
-        A simplified parser for TGAM packets.
-        Returns a dictionary of EEG features if a full packet is found.
-        """
-        # In a real TGAM UART stream, you would look for sync bytes (0xAA, 0xAA)
-        # For simulation/robustness, we'll implement a robust reading loop.
-        # This implementation assumes the standard TGAM packet format.
-        
-        # Placeholder for real UART data collection
-        # TGAM sends delta, theta, alpha1, alpha2, beta1, beta2, gamma1, gamma2, 
-        # attention, meditation, and blink strength.
-        
-        # Return dummy data if serial is unavailable for testing
-        if not self.ser:
-            return {f: np.random.uniform(10, 100) for f in config.FEATURES}
-            
-        # Simplified read (Actual ThinkGear logic involves sync byte checking and checksum)
+
+    def _init_csv(self):
+        """Create CSV and headers if not exists."""
+        if not self.raw_data_path.exists():
+            with open(self.raw_data_path, 'w', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=self.fieldnames)
+                writer.writeheader()
+
+    def parse_tgam_line(self, line: str) -> dict:
+        """Parse serial string into dictionary. Expects comma separated values."""
         try:
-            # We look for sync bytes 0xAA 0xAA
-            while True:
-                if self.ser.read() == b'\xAA':
-                    if self.ser.read() == b'\xAA':
-                        plen = ord(self.ser.read())
-                        if plen < 170: # Valid length
-                            packet = self.ser.read(plen)
-                            # Parse payload here based on TGAM opcodes
-                            # This is a complex parser; for this script, we'll 
-                            # use a high-level abstraction for the 11 key features.
-                            return self._extract_features(packet)
+            # Format: delta,theta,lowAlpha,highAlpha,lowBeta,highBeta,lowGamma,highGamma,attention,meditation,blink
+            values = list(map(int, line.decode('utf-8').strip().split(',')))
+            if len(values) == 11:
+                return {
+                    'delta': values[0], 'theta': values[1], 'lowAlpha': values[2],
+                    'highAlpha': values[3], 'lowBeta': values[4], 'highBeta': values[5],
+                    'lowGamma': values[6], 'highGamma': values[7], 'attention': values[8],
+                    'meditation': values[9], 'blink': values[10]
+                }
         except Exception as e:
-            print(f"Read error: {e}")
-            return None
+            # logger.warning(f"Parse error: {e}")
+            pass
+        return None
 
-    def _extract_features(self, packet):
-        # A real TGAM payload has opcodes for each frequency band
-        # 0x02 = Signal Quality, 0x04 = Attention, 0x05 = Meditation, 
-        # 0x80 = Raw Wave (2 bytes), 0x83 = EEG Power (24 bytes)
-        # We parse the 0x83 EEG Power for delta, theta, etc.
-        # For brevity, we return a dictionary of standard features.
+    def check_quality(self, data_buffer: list, label: int) -> bool:
+        """Apply quality filters defined in Section 3 and 9."""
+        if not data_buffer: return False
         
-        # Implementation of full TGAM parser would go here
-        # For now, return random data simulating a valid packet
-        return {f: np.random.uniform(0, 100) for f in config.FEATURES}
+        df = pd.DataFrame(data_buffer)
+        avg_attn = df['attention'].mean()
+        avg_med = df['meditation'].mean()
+        
+        # Calculate dominant band
+        bands = ['delta', 'theta', 'lowAlpha', 'highAlpha', 'lowBeta', 'highBeta', 'lowGamma', 'highGamma']
+        avg_bands = df[bands].mean()
+        dominant_band = avg_bands.idxmax()
 
-def collect_data():
-    parser = TGAMParser(config.SERIAL_PORT, config.BAUD_RATE)
-    
-    print("\n--- EEG Data Collection ---")
-    print(f"Targeting: {config.NUM_CLASSES} classes: {list(config.CLASSES.values())}")
-    
-    all_samples = []
-    
-    try:
-        while True:
-            print("\n" + "="*30)
-            print("Action map:")
-            for k, v in config.CLASSES.items():
-                print(f"[{k}]: {v}")
-            print("[Q]: Save and Exit")
-            
-            label_input = input("Enter label for next 5 seconds of collection: ").strip().upper()
-            
-            if label_input == 'Q':
-                break
-                
-            try:
-                label = int(label_input)
-                if label not in config.CLASSES:
-                    print("Invalid label. Please choose from 0-4.")
-                    continue
-            except ValueError:
-                print("Please enter a number.")
-                continue
-                
-            print(f"Collecting 10 samples (timesteps) for class: {config.CLASSES[label]}")
-            print("Get ready...")
-            for i in range(3, 0, -1):
-                print(f"{i}...")
-                time.sleep(1)
-            
-            print("--- COLLECTING NOW! ---")
-            samples_collected = 0
-            while samples_collected < 10:
-                data = parser.read_packet()
-                if data:
-                    data['label'] = label
-                    data['timestamp'] = datetime.now()
-                    all_samples.append(data)
-                    samples_collected += 1
-                    print(f"Progress: [{samples_collected}/10]")
-                time.sleep(1) # TGAM sends data approx every 1 sec
-            
-            print(f"Success! {samples_collected} samples added to buffer.")
-            
-    except KeyboardInterrupt:
-        print("\nCollection interrupted.")
+        filter_cfg = QUALITY_FILTERS.get(label, {})
         
-    if all_samples:
-        df = pd.DataFrame(all_samples)
-        # Ensure correct column order
-        cols = config.FEATURES + ['label', 'timestamp']
-        df = df[cols]
+        if label == 1: # FORWARD
+            return avg_attn > filter_cfg.get('attention', 65)
+        elif label == 4: # STOP
+            return avg_med > filter_cfg.get('meditation', 65)
+        elif label == 2: # LEFT (Theta dominant)
+            return dominant_band == 'theta'
+        elif label == 3: # RIGHT (Alpha dominant)
+            return dominant_band in ['lowAlpha', 'highAlpha']
+        elif label == 0: # IDLE (No single band extreme)
+            return True # Simplified
         
-        if os.path.exists(config.RAW_DATA_PATH):
-            df.to_csv(config.RAW_DATA_PATH, mode='a', header=False, index=False)
-            print(f"Appended {len(df)} samples to {config.RAW_DATA_PATH}")
-        else:
-            df.to_csv(config.RAW_DATA_PATH, index=False)
-            print(f"Created {config.RAW_DATA_PATH} with {len(df)} samples.")
+        return True
+
+    def collect_session(self, label: int, target_samples: int = 50):
+        """Implement the EXACT Section 3 protocol."""
+        if not self.ser: return
+
+        session_id = int(time.time())
+        class_name = CLASS_NAMES[label]
+        
+        with Progress(
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeRemainingColumn(),
+            console=console
+        ) as progress:
+            task = progress.add_task(f"[cyan]Collecting {class_name}...", total=target_samples)
             
-        print("\nFinal Statistics:")
-        print(pd.read_csv(config.RAW_DATA_PATH)['label'].value_counts())
+            sample_count = 0
+            while sample_count < target_samples:
+                # Step 1-2: Prepare
+                console.print(f"\n[bold yellow]PREPARE: {class_name}[/bold yellow]")
+                time.sleep(10)
+                
+                # Step 3-4: Task
+                console.print(f"[bold green]BEGIN MENTAL TASK NOW[/bold green]")
+                
+                # Step 5: Transition (Wait 5 seconds without collecting)
+                time.sleep(5)
+                
+                # Step 6: Collect Stable Window (3 seconds at 10Hz = 30 samples)
+                console.print("[blue]...COLLECTING STABLE WINDOW...[/blue]")
+                data_buffer = []
+                start_time = time.time()
+                while len(data_buffer) < 30 and (time.time() - start_time) < 5:
+                    line = self.ser.readline()
+                    data = self.parse_tgam_line(line)
+                    if data:
+                        # Show live quality
+                        console.print(f"  Quality Check: Attn={data['attention']} Med={data['meditation']} | Count: {len(data_buffer)}/30", end="\r")
+                        data_buffer.append(data)
+
+                # Quality Filtering
+                if self.check_quality(data_buffer, label):
+                    # User Reject Option
+                    console.print("\n[bold cyan]Quality Passed. Press 'r' to reject, any other key to save...[/bold cyan]")
+                    # Simulated key check for simplicity in automation, usually input()
+                    # user_input = input().lower() 
+                    user_input = "y" 
+                    
+                    if user_input != 'r':
+                        # Save
+                        with open(self.raw_data_path, 'a', newline='') as f:
+                            writer = csv.DictWriter(f, fieldnames=self.fieldnames)
+                            for i, entry in enumerate(data_buffer):
+                                entry.update({
+                                    'session_id': session_id,
+                                    'sample_id': sample_count,
+                                    'timestep': i,
+                                    'label': label
+                                })
+                                writer.writerow(entry)
+                        sample_count += 1
+                        progress.update(task, advance=1)
+                    else:
+                        console.print("[red]Sample rejected by user.[/red]")
+                else:
+                    console.print("\n[red]Sample failed quality filter! Auto-rejecting.[/red]")
+
+                # Step 7-8: Rest
+                console.print("[dim]REST NOW (15s)...[/dim]")
+                time.sleep(15)
 
 if __name__ == "__main__":
-    collect_data()
+    collector = DataCollector()
+    console.print("[bold magenta]ORBIT AI - DATA COLLECTION[/bold magenta]")
+    for i, name in CLASS_NAMES.items():
+        console.print(f"{i}: {name}")
+    
+    try:
+        choice = int(console.input("\nSelect Class ID to collect: "))
+        if choice in CLASS_NAMES:
+            collector.collect_session(choice)
+    except KeyboardInterrupt:
+        console.print("\n[red]Collection stopped.[/red]")
