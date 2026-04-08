@@ -75,5 +75,3 @@ python predict_realtime.py
 - **Poor Signal:** Ensure the forehead sensor (Fp1) is clean and the ear clip is secure.
 - **Inconsistent Control:** Recalibrate your mental states; ensure 15s rest between triggers.
 
----
-*Developed with Antigravity AI*
