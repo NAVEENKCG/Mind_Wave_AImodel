@@ -1,22 +1,21 @@
-.venv/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-ENV/
+# EEG Data
+data/raw_data.csv
+data/external/
+data/*.npy
+data/*.csv
 
-# Data and Models
-data/
+# Models & Results
 models/*.pth
 models/*.pkl
-*.csv
-*.npy
-training_curves.png
-confusion_matrix.png
+results/*.png
+logs/*.csv
 
-# IDEs
-.vscode/
-.idea/
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# OS
+.DS_Store
+Thumbs.db

@@ -5,62 +5,30 @@ import joblib
 import time
 import logging
 import collections
+import argparse
+import socket
+import json
+from collections import deque
 from rich.live import Live
 from rich.panel import Panel
 from rich.layout import Layout
 from rich.table import Table
 from rich.console import Console
+from rich.progress import Progress, BarColumn
 from rich import box
 
 from config import (
     SERIAL_PORT, BAUD_RATE, WHEELCHAIR_PORT, WHEELCHAIR_BAUD,
     MODELS_DIR, USE_CNN_LSTM, CLASS_NAMES,
     CONFIDENCE_THRESHOLDS, HOLD_REQUIRED, COOLDOWN_SECONDS,
-    INFER_WINDOW_SIZE
+    INFER_WINDOW_SIZE, MODEL_PATH, TRAIN_WINDOW_SIZE, COMMANDS
 )
-from model import get_model
+from model import get_model, EEGClassifier_CNN_LSTM
 
 # Setup logging
-logging.basicConfig(level=logging.ERROR) # Only show errors to avoid cluttering Rich UI
+logging.basicConfig(level=logging.ERROR)
 console = Console()
 
-class RealTimeInference:
-    """Orchestrates live EEG data intake, model prediction, and wheelchair control."""
-    
-    def __init__(self):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
-        # Load Model & Scaler
-        self.model = get_model(USE_CNN_LSTM).to(self.device)
-        self.model.load_state_dict(torch.load(MODELS_DIR / "best_model.pth", map_location=self.device))
-        self.model.eval()
-        self.scaler = joblib.load(MODELS_DIR / "scaler.pkl")
-        
-        # Buffers
-        self.data_buffer = collections.deque(maxlen=INFER_WINDOW_SIZE)
-        self.prediction_buffer = collections.deque(maxlen=3)
-        
-        # State
-        self.last_cmd = "IDLE"
-        self.last_cmd_time = 0
-        self.hold_count = 0
-        self.is_connected = False
-        
-        # Serial
-        try:
-            self.ser_tgam = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.1)
-            self.ser_wheelchair = serial.Serial(WHEELCHAIR_PORT, WHEELCHAIR_BAUD, timeout=0.1)
-            self.is_connected = True
-        except Exception as e:
-            console.print(f"[red]Serial Connection Error: {e}[/red]")
-
-    def add_derived_features(self, raw_features: np.ndarray) -> np.ndarray:
-        """Add derived features to a single timestep [11] -> [18]."""
-        # delta, theta, lowAlpha, highAlpha, lowBeta, highBeta, lowGamma, highGamma, attn, med, blink
-        epsilon = 1e-6
-        bands = raw_features[:8]
-        total_power = np.sum(bands)
-        
         theta_beta = raw_features[1] / (raw_features[4] + raw_features[5] + epsilon)
         alpha_beta = (raw_features[2] + raw_features[3]) / (raw_features[4] + raw_features[5] + epsilon)
         attn_med_diff = raw_features[8] - raw_features[9]

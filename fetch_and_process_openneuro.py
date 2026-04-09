@@ -92,75 +92,64 @@ def extract_tgam_features_from_raw(raw: mne.io.Raw) -> np.ndarray:
     return np.array(features_list)
 
 def process_and_store():
-    """Processes downloaded EDF/Set files from ds002721 and maps events to commands."""
-    dataset_id = "ds002721"
-    input_dir = DATA_DIR / "external" / dataset_id
+    """Processes downloaded EDF/Set files and maps events to commands."""
+    datasets = ["ds002721", "ds003478"]
     
     all_windows = []
     all_labels = []
-    
-    # ds002721 specific: Usually comes in BIDS format with .edf files
-    edf_files = list(input_dir.glob("**/*.edf"))
-    
-    if not edf_files:
-        logger.error(f"No EEG files found in {input_dir}. Run fetch_openneuro_dataset first.")
-        return
 
-    for file_path in edf_files:
-        try:
-            # Load raw data
-            raw = mne.io.read_raw_any(file_path, preload=True)
-            logger.info(f"Processing {file_path.name}...")
-            
-            # Find associated events file (*_events.tsv)
-            events_path = file_path.with_name(file_path.name.replace("_eeg.edf", "_events.tsv"))
-            if not events_path.exists():
-                logger.warning(f"Events table not found for {file_path.name}. Skipping.")
-                continue
+    for dataset_id in datasets:
+        input_dir = DATA_DIR / "external" / dataset_id
+        if not input_dir.exists():
+            continue
+
+        edf_files = list(input_dir.glob("**/*.edf"))
+        for file_path in edf_files:
+            try:
+                raw = mne.io.read_raw_edf(file_path, preload=True)
+                logger.info(f"Processing {file_path.name} from {dataset_id}...")
                 
-            events_df = pd.read_csv(events_path, sep='\t')
-            
-            # MAPPING FOR ds002721:
-            # Usually: 'arithmetic' -> Task, 'rest' -> Baseline
-            for _, event in events_df.iterrows():
-                onset = event['onset']
-                duration = event['duration']
-                trial_type = event['trial_type']
+                # Find events
+                events_path = file_path.with_name(file_path.name.replace("_eeg.edf", "_events.tsv"))
+                if not events_path.exists(): continue
                 
-                # Assign labels based on trial type
-                if 'arithmetic' in trial_type.lower():
-                    label = 2  # LEFT (Mental Arithmetic)
-                elif 'rest' in trial_type.lower():
-                    label = 0  # IDLE
-                else:
-                    continue # Skip other types
+                events_df = pd.read_csv(events_path, sep='\t')
                 
-                # Crop segments
-                tmin, tmax = onset, onset + duration
-                segment = raw.copy().crop(tmin=tmin, tmax=tmax)
-                
-                # Extract features
-                features = extract_tgam_features_from_raw(segment)
-                
-                # We need features in windows of TRAIN_WINDOW_SIZE (30 = 3s)
-                # extract_tgam_features_from_raw returns [N, 11] at 10Hz
-                # We can slice it into windows of 30
-                for i in range(0, len(features) - 30 + 1, 10): # 1s stride
-                    window = features[i : i + 30]
-                    all_windows.append(window)
-                    all_labels.append(label)
-            
-        except Exception as e:
-            logger.error(f"Error processing {file_path}: {e}")
+                for _, event in events_df.iterrows():
+                    onset, duration = event['onset'], event['duration']
+                    trial_type = str(event['trial_type']).lower()
+                    
+                    label = None
+                    if dataset_id == "ds002721":
+                        if 'arithmetic' in trial_type: label = 2 # LEFT
+                        elif 'rest' in trial_type: label = 0 # IDLE
+                    elif dataset_id == "ds003478":
+                        if 'task' in trial_type or 'focus' in trial_type: label = 1 # FORWARD
+                        elif 'rest' in trial_type: label = 0 # IDLE
+                    
+                    if label is None: continue
+                    
+                    # Crop and extract
+                    segment = raw.copy().crop(tmin=onset, tmax=onset + duration)
+                    features = extract_tgam_features_from_raw(segment)
+                    
+                    for i in range(0, len(features) - 30 + 1, 10):
+                        all_windows.append(features[i : i + 30])
+                        all_labels.append(label)
+                        
+            except Exception as e:
+                logger.error(f"Error in {file_path.name}: {e}")
 
     if all_windows:
         X_pretrained = np.array(all_windows)
         y_pretrained = np.array(all_labels)
         np.save(DATA_DIR / "X_pretrained.npy", X_pretrained)
         np.save(DATA_DIR / "y_pretrained.npy", y_pretrained)
-        logger.info(f"Stored {X_pretrained.shape} pre-training samples to data/X_pretrained.npy")
+        logger.info(f"Final training-ready set stored: {X_pretrained.shape}")
 
 if __name__ == "__main__":
-    # Target ds002721 for Mental Arithmetic
-    fetch_openneuro_dataset("ds002721")
+    # Fetch both datasets
+    for ds in ["ds002721", "ds003478"]:
+        fetch_openneuro_dataset(ds)
+    
     process_and_store()
