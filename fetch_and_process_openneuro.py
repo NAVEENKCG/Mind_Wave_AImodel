@@ -106,36 +106,58 @@ def process_and_store():
         edf_files = list(input_dir.glob("**/*.edf"))
         for file_path in edf_files:
             try:
-                raw = mne.io.read_raw_edf(file_path, preload=True)
-                logger.info(f"Processing {file_path.name} from {dataset_id}...")
+                # Memory efficient: don't preload the whole file
+                raw = mne.io.read_raw_edf(file_path, preload=False)
+                logger.info(f"Scanning {file_path.name}...")
                 
-                # Find events
-                events_path = file_path.with_name(file_path.name.replace("_eeg.edf", "_events.tsv"))
-                if not events_path.exists(): continue
+                # Find events (handle both 'sub-01_task-run1_events.tsv' and 'sub-01_task-run1_eeg_events.tsv')
+                events_name = file_path.name.replace("_eeg.edf", "_events.tsv")
+                events_path = file_path.with_name(events_name)
+                
+                if not events_path.exists():
+                    alternative_name = file_path.name.replace(".edf", "_events.tsv")
+                    events_path = file_path.with_name(alternative_name)
+                
+                if not events_path.exists():
+                    logger.warning(f"   No events found for {file_path.name}. Skipping.")
+                    continue
                 
                 events_df = pd.read_csv(events_path, sep='\t')
+                logger.info(f"   Processing {len(events_df)} events for {file_path.name}...")
                 
-                for _, event in events_df.iterrows():
+                for idx, event in events_df.iterrows():
                     onset, duration = event['onset'], event['duration']
                     trial_type = str(event['trial_type']).lower()
                     
                     label = None
-                    if dataset_id == "ds002721":
+                    # Numerical mapping for many OpenNeuro datasets (0=Rest, 1=Task)
+                    try:
+                        t_val = int(float(trial_type))
+                        if dataset_id == "ds002721":
+                            if t_val == 1: label = 2 # Task -> LEFT
+                            elif t_val == 0: label = 0 # Rest -> IDLE
+                        elif dataset_id == "ds003478":
+                            if t_val == 1: label = 1 # Task -> FORWARD
+                            elif t_val == 0: label = 0 # Rest -> IDLE
+                    except:
+                        # Fallback for datasets with string names
                         if 'arithmetic' in trial_type: label = 2 # LEFT
-                        elif 'rest' in trial_type: label = 0 # IDLE
-                    elif dataset_id == "ds003478":
-                        if 'task' in trial_type or 'focus' in trial_type: label = 1 # FORWARD
+                        elif 'task' in trial_type or 'focus' in trial_type: label = 1 # FORWARD
                         elif 'rest' in trial_type: label = 0 # IDLE
                     
                     if label is None: continue
                     
-                    # Crop and extract
-                    segment = raw.copy().crop(tmin=onset, tmax=onset + duration)
+                    # Only load this tiny segment of data into memory
+                    segment = raw.copy().crop(tmin=onset, tmax=onset + duration).load_data()
                     features = extract_tgam_features_from_raw(segment)
                     
-                    for i in range(0, len(features) - 30 + 1, 10):
-                        all_windows.append(features[i : i + 30])
+                    # Use dynamic window size from config.py
+                    for i in range(0, len(features) - TRAIN_WINDOW_SIZE + 1, 10):
+                        all_windows.append(features[i : i + TRAIN_WINDOW_SIZE])
                         all_labels.append(label)
+                    
+                    if len(all_labels) % 100 == 0:
+                        logger.info(f"   Collected {len(all_labels)} windows so far...")
                         
             except Exception as e:
                 logger.error(f"Error in {file_path.name}: {e}")

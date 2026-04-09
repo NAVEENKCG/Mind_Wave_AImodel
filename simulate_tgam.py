@@ -67,7 +67,7 @@ class RealDataSimulator:
 
                     packet = self.get_real_packet(current_label)
                     conn.sendall((json.dumps(packet) + "\n").encode())
-                    time.sleep(1.0)
+                    time.sleep(0.1) # 10Hz - Real-time speed
 
 if __name__ == "__main__":
     sim = RealDataSimulator()

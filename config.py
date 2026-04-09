@@ -18,7 +18,7 @@ USE_CNN_LSTM = True  # Flag to switch between architectures
 SEED = 42
 
 # Data Configuration
-TRAIN_WINDOW_SIZE = 30  # 3 seconds at 10Hz
+TRAIN_WINDOW_SIZE = 10  # 1.0 seconds at 10Hz (snappy response)
 INFER_WINDOW_SIZE = 10  # 1 second for faster response
 STRIDE = 5              # 50% overlap for 10Hz (approx 0.5s)
 N_FEATURES_RAW = 11
@@ -63,3 +63,7 @@ QUALITY_FILTERS = {
     4: {"meditation": 65},
     0: {"no_dominant": True}
 }
+
+# Final File Pathing for inference
+MODEL_PATH = MODELS_DIR / "best_model.pth"
+COMMANDS = CLASS_NAMES
