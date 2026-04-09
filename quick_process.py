@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 import logging
 from config import *
+from scipy.signal import welch
 
 # Ensure we use the 1.0s window defined in config.py
 WINDOW_SIZE = TRAIN_WINDOW_SIZE # 10
@@ -10,31 +11,44 @@ WINDOW_SIZE = TRAIN_WINDOW_SIZE # 10
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def extract_tgam_features_from_raw(raw):
-    """Convert high-rate EEG to TGAM-style 10Hz power band features."""
+def get_bandpower(data, sfreq, band):
+    """Calculate the average power in a specific frequency band."""
+    f, psd = welch(data, sfreq, nperseg=min(data.shape[-1], 256))
+    idx_band = np.logical_and(f >= band[0], f <= band[1])
+    return np.mean(psd[idx_band]) if np.any(idx_band) else 0
+
+def extract_scientific_features(raw):
+    """Extract real EEG power bands (Delta to Gamma) like a real TGAM module."""
     data = raw.get_data()
     sfreq = raw.info['sfreq']
-    chunk_size = int(sfreq * 0.1)
+    chunk_size = int(sfreq * 0.1) # 10Hz steps
     features_list = []
     
+    # Define standard EEG bands
+    BANDS = {
+        'delta': (0.5, 4),
+        'theta': (4, 8),
+        'lowAlpha': (8, 10),
+        'highAlpha': (10, 13),
+        'lowBeta': (13, 20),
+        'highBeta': (20, 30),
+        'lowGamma': (30, 40),
+        'highGamma': (40, 50)
+    }
+    
+    # Process the entire recording in 0.1s chunks
     for i in range(0, data.shape[1] - chunk_size + 1, chunk_size):
-        chunk = data[:, i:i+chunk_size]
-        # Map raw EEG energy to simulated power bands
-        energy = np.mean(np.abs(chunk))
-        feat = [
-            energy * 1.5, # delta
-            energy * 1.0, # theta
-            energy * 0.5, # lowAlpha
-            energy * 0.4, # highAlpha
-            energy * 0.3, # lowBeta
-            energy * 0.2, # highBeta
-            energy * 1.8, # lowGamma
-            energy * 1.5, # highGamma
-            80.0, # attention
-            60.0, # meditation
-            0.0   # blink
-        ]
-        features_list.append(feat)
+        chunk = data[0, i:i+chunk_size] # Use first channel
+        
+        row = []
+        for name, (fmin, fmax) in BANDS.items():
+            power = get_bandpower(chunk, sfreq, (fmin, fmax))
+            row.append(power)
+            
+        # Add placeholders for Attention, Meditation, Blink (TGAM style)
+        row.extend([50.0, 50.0, 0.0])
+        features_list.append(row)
+        
     return np.array(features_list)
 
 def process_and_store():
@@ -42,8 +56,9 @@ def process_and_store():
     all_windows = []
     all_labels = []
     
-    # Process 10 subjects for high accuracy
     subjects = [f"sub-{i:02d}" for i in range(1, 11)]
+    
+    logger.info("🧠 Extracting Scientific Frequency Bands...")
     
     for sub in subjects:
         sub_path = data_path / sub / "eeg"
@@ -52,28 +67,34 @@ def process_and_store():
         for edf_file in sub_path.glob("*.edf"):
             try:
                 raw = mne.io.read_raw_edf(edf_file, preload=True, verbose=False)
-                features = extract_tgam_features_from_raw(raw)
+                # Standardize EEG data (Filter and Resample)
+                raw.filter(1, 50, verbose=False)
                 
-                # STRICT MAPPING:
-                # Run 1: Resting -> IDLE (0)
-                # Run 2: Motor Imagery -> FORWARD (1)
-                # Run 3: Motor Imagery -> LEFT (2)
-                if "run1" in str(edf_file): label = 0
-                elif "run2" in str(edf_file): label = 1
-                elif "run3" in str(edf_file): label = 2
-                else: continue # Skip others for clarity
+                features = extract_scientific_features(raw)
+                
+                # Normalize features (Standard Scaling)
+                if len(features) > 0:
+                    features = (features - np.mean(features, axis=0)) / (np.std(features, axis=0) + 1e-6)
+                
+                if "run1" in str(edf_file): label = 0 # IDLE
+                elif "run2" in str(edf_file): label = 1 # FORWARD
+                elif "run3" in str(edf_file): label = 2 # LEFT
+                else: continue
                 
                 for i in range(0, len(features) - WINDOW_SIZE + 1, 5):
                     all_windows.append(features[i : i + WINDOW_SIZE])
                     all_labels.append(label)
-            except: continue
+            except Exception as e:
+                continue
 
     X = np.array(all_windows)
     y = np.array(all_labels)
+    
+    # Clean up and save
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     np.save(DATA_DIR / "X_pretrained.npy", X)
     np.save(DATA_DIR / "y_pretrained.npy", y)
-    logger.info(f"✅ DATA READY! {len(X)} samples aligned (Window: {WINDOW_SIZE})")
+    logger.info(f"✅ HIGH-FIDELITY DATA READY! {len(X)} samples with {X.shape[2]} features.")
 
 if __name__ == "__main__":
     process_and_store()
