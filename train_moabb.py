@@ -55,25 +55,30 @@ def main():
     dataset = PhysionetMI()
     paradigm = LeftRightImagery()
 
-    # Use 3 subjects for speed and to avoid PhysioNet download timeouts.
-    subjects = list(range(1, 4))
+    # Increase to 20 subjects for professional stability
+    subjects = list(range(1, 21))
     print(f"   Using {len(subjects)} subjects for training")
 
     # ── 2. Extract epochs ───────────────────────────────────────────
-    print("🔬 Extracting epochs...")
+    print("🔬 Extracting epochs (4s windows for max stability)...")
+    # Using longer windows (4s) makes the brain patterns much clearer to the AI
+    paradigm = LeftRightImagery(tmin=0, tmax=4)
     X, y, meta = paradigm.get_data(dataset=dataset, subjects=subjects)
-    print(f"   Epochs shape : {X.shape}  (samples × channels × timepoints)")
+    
+    print(f"   Epochs shape : {X.shape}")
     print(f"   Labels       : {np.unique(y, return_counts=True)}")
 
-    # ── 3. Build Pipeline ───────────────────────────────────────────
-    # CSP: learns spatial filters to maximise variance difference between classes
-    # LDA: linear classifier on the CSP features
-    csp = CSP(n_components=6, reg=0.1, log=True, norm_trace=False)
+    # ── 3. Build Advanced Pipeline ───────────────────────────────────
+    # Adding TangentSpace makes the model much more accurate for BCI
+    from pyriemann.estimation import Covariances
+    from pyriemann.tangentspace import TangentSpace
+    
     lda = LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto')
     scaler = StandardScaler()
 
     pipeline = Pipeline([
-        ('csp',    csp),
+        ('cov',    Covariances(estimator='lwf')),
+        ('ts',     TangentSpace(metric='riemann')),
         ('scaler', scaler),
         ('lda',    lda),
     ])

@@ -64,6 +64,7 @@ class RealtimePredictor:
     def __init__(self):
         self.console = Console()
         self.arena   = WheelchairArena()
+        self.sock_buffer = ""
 
         # Data Logging
         self.log_file = DATA_DIR / "live_recordings.csv"
@@ -112,19 +113,31 @@ class RealtimePredictor:
 
     # ── Data Ingestion ───────────────────────────────────────────────
     def get_data(self):
-        """Non-blocking read of latest packet from socket."""
+        """Non-blocking read, safely accumulating large JSON packets."""
         try:
             self.sock.setblocking(False)
-            latest = None
             while True:
                 try:
-                    chunk = self.sock.recv(65536).decode()
+                    chunk = self.sock.recv(1024 * 512).decode('utf-8', errors='ignore')
                     if not chunk: break
-                    packets = [p for p in chunk.strip().split('\n') if p]
-                    if packets: latest = packets[-1]
+                    self.sock_buffer += chunk
                 except BlockingIOError:
                     break
-            return json.loads(latest) if latest else None
+            
+            # Find the last complete packet
+            if '\n' in self.sock_buffer:
+                # Split at the last newline. 
+                # [0] contains all complete packets. [1] contains any trailing incomplete chunk.
+                parts = self.sock_buffer.rsplit('\n', 1)
+                complete_packets = parts[0]
+                self.sock_buffer = parts[1]
+                
+                # We only care about the absolute latest packet for real-time
+                last_packet = complete_packets.split('\n')[-1]
+                if last_packet:
+                    return json.loads(last_packet)
+            
+            return None
         except Exception:
             return None
 
@@ -161,9 +174,14 @@ class RealtimePredictor:
             # classes: 0=imagery_left (IDLE), 1=imagery_right (FORWARD)
             forward_prob = float(proba[0][1])
         except Exception:
-            # Pipeline may not support predict_proba; use predict
-            pred = self.moabb_pipeline.predict(X)[0]
-            forward_prob = 1.0 if pred == 1 else 0.0
+            # LinearDiscriminantAnalysis with shrinkage doesn't support predict_proba natively.
+            # Instead, we use decision_function (distance to boundary) and pass it through a sigmoid.
+            try:
+                decision = float(self.moabb_pipeline.decision_function(X)[0])
+                forward_prob = 1.0 / (1.0 + np.exp(-decision))
+            except Exception:
+                pred = self.moabb_pipeline.predict(X)[0]
+                forward_prob = 1.0 if pred == 1 else 0.0
 
         return forward_prob, 1.0 - forward_prob
 
