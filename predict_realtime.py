@@ -23,6 +23,7 @@ from rich.live import Live
 from rich.panel import Panel
 from rich.layout import Layout
 from rich.table import Table
+from scipy.signal import welch
 
 from config import *
 
@@ -101,6 +102,26 @@ class RealtimePredictor:
             self.console.print("[yellow]⚡ No MOABB model found. Using BioSensor engine.[/yellow]")
             self.console.print("[yellow]   Run 'python train_moabb.py' to train.[/yellow]")
 
+        # ── Load Personal Profile ────────────────────────────────────
+        self.profile = None
+        self.profile_path = MODELS_DIR / "personal_profile.json"
+        if self.profile_path.exists():
+            try:
+                with open(self.profile_path, "r") as f:
+                    self.profile = json.load(f)
+                self.console.print("[green]✅ Personal Calibration loaded.[/green]")
+            except Exception:
+                self.console.print("[yellow]⚠ Could not load personal calibration.[/yellow]")
+        else:
+            self.console.print("[yellow]⚠ No personal profile found. Run calibrate.py for best results.[/yellow]")
+
+        # ── Health & Smoothing State ────────────────────────────────
+        self.recent_preds = deque(maxlen=3)
+        self.fatigue_history = deque(maxlen=50) # 5 seconds
+        self.fatigue_state = "NORMAL"
+        self.session_start = time.time()
+        self.signal_msg = "AWAITING SIGNAL"
+
         # ── Connect to Simulator ─────────────────────────────────────
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.console.print("[cyan]📡 Connecting to Simulator...[/cyan]")
@@ -150,6 +171,28 @@ class RealtimePredictor:
             f.write(",".join(map(str, vals)) + f",{self.last_command}\n")
         vals.extend([0.0] * 7)  # Pad to 18
         return vals
+
+    def is_signal_valid(self, raw_dict):
+        raw = raw_dict.get("_raw_epoch")
+        if not raw: return False, "NO DATA"
+        flat = np.array(raw).flatten()
+        if np.all(flat == 0.0): return False, "NO CONTACT"
+        if np.std(flat) > 300: return False, "NOISY"
+        return True, "GOOD"
+
+    def compute_fatigue(self, raw_dict):
+        raw = raw_dict.get("_raw_epoch")
+        if not raw: return 0.0
+        try:
+            ch_data = np.array(raw)[0] # C3 channel
+            fs = raw_dict.get("_sfreq", 160)
+            f, pxx = welch(ch_data, fs=fs, nperseg=min(len(ch_data), int(fs)))
+            theta = np.mean(pxx[(f>=4) & (f<=8)])
+            alpha = np.mean(pxx[(f>=8) & (f<=13)])
+            beta  = np.mean(pxx[(f>=13) & (f<=30)])
+            return theta / (alpha + beta + 1e-6)
+        except Exception:
+            return 0.0
 
     # ── Classifiers ──────────────────────────────────────────────────
     def classify_moabb(self, raw_dict):
@@ -211,15 +254,21 @@ class RealtimePredictor:
         ))
 
         c = "green" if self.last_command == "FORWARD" else "white"
+        if self.fatigue_state == "CRITICAL": c = "red"
+        
         info = Table.grid(padding=(0, 1))
         info.add_row("[bold]STATUS:[/bold]",     f"[bold {c}]{self.last_command}[/bold {c}]")
         info.add_row("[bold]CONFIDENCE:[/bold]", f"[yellow]{self.last_conf * 100:.1f}%[/yellow]")
-        info.add_row("[bold]SAMPLES:[/bold]",    f"[green]{os.path.getsize(self.log_file)//1024} KB[/green]")
+        info.add_row("[bold]SIGNAL:[/bold]",     f"{self.signal_msg}")
+        info.add_row("[bold]FATIGUE:[/bold]",    f"[{ 'red' if self.fatigue_state=='CRITICAL' else 'yellow' if self.fatigue_state=='WARNING' else 'green'}]{self.fatigue_state}[/]")
         info.add_row("[bold]FWD/IDLE:[/bold]",   f"[cyan]{self.total_fwd}/{self.total_idle}[/cyan]")
         info.add_row("[bold]ENGINE:[/bold]",     f"[magenta]{self.engine_name}[/magenta]")
 
         layout["sidebar"].update(Panel(info, title="System Info", border_style="dim"))
-        layout["arena"].update(Panel(self.arena.render(), title="Virtual Arena", border_style="green"))
+        
+        arena_color = "red" if self.fatigue_state == "CRITICAL" else "yellow" if self.session_age < 120 else "green"
+        arena_title = "Virtual Arena" if self.session_age >= 120 else f"Warmup Phase ({int(self.session_age)}/120s)"
+        layout["arena"].update(Panel(self.arena.render(), title=arena_title, border_style=arena_color))
         return layout
 
     # ── Main Loop ────────────────────────────────────────────────────
@@ -239,23 +288,69 @@ class RealtimePredictor:
                 self._last_raw = raw
                 features = self.build_features(raw)
                 self.window.append(features)
+                self.session_age = time.time() - self.session_start
 
                 if len(self.window) == TRAIN_WINDOW_SIZE:
-                    # Choose engine
+                    
+                    # 1. Signal Quality Gate
+                    valid, self.signal_msg = self.is_signal_valid(raw)
+                    if not valid:
+                        self.last_command = "IDLE (NO SIGNAL)"
+                        live.update(self.build_layout())
+                        continue
+                        
+                    # 2. Fatigue Monitor
+                    fatigue_ratio = self.compute_fatigue(raw)
+                    self.fatigue_history.append(fatigue_ratio)
+                    avg_fatigue = np.mean(self.fatigue_history)
+                    
+                    fatigue_thresh = self.profile.get("fatigue_threshold", 0.8) if self.profile else 0.8
+                    if avg_fatigue > fatigue_thresh * 1.5:
+                        self.fatigue_state = "CRITICAL"
+                    elif avg_fatigue > fatigue_thresh * 1.2:
+                        self.fatigue_state = "WARNING"
+                    elif avg_fatigue > fatigue_thresh * 1.05:
+                        self.fatigue_state = "ALERT"
+                    else:
+                        self.fatigue_state = "NORMAL"
+                        
+                    if self.fatigue_state == "CRITICAL":
+                        self.last_command = "STAY_IDLE (FATIGUED)"
+                        self.last_conf = 100.0
+                        live.update(self.build_layout())
+                        continue
+
+                    # 3. Warmup Phase Override
+                    if self.session_age < 120:
+                        self.last_command = "CALIBRATING"
+                        self.signal_msg = "[yellow]WARMUP[/yellow]"
+                        live.update(self.build_layout())
+                        continue
+                        
+                    # 4. Engine Classification
                     if self.moabb_pipeline is not None:
                         forward_prob, idle_prob = self.classify_moabb(raw)
                     else:
                         forward_prob, idle_prob = self.classify_biosensor(raw)
+                        
+                    self.recent_preds.append((forward_prob, idle_prob))
 
-                    if forward_prob > 0.50:
-                        self.last_command = "FORWARD"
-                        self.arena.update(1)
-                        self.last_conf = (self.last_conf * 0.3) + (forward_prob * 0.7)
-                        self.total_fwd += 1
-                    else:
-                        self.last_command = "IDLE"
-                        self.last_conf = (self.last_conf * 0.3) + (idle_prob * 0.7)
-                        self.total_idle += 1
+                    # 5. Adaptive Command Smoothing (Weighted Voting)
+                    if len(self.recent_preds) == 3:
+                        weights = [0.2, 0.3, 0.5]
+                        score_fwd = sum([p[0] * w for p, w in zip(self.recent_preds, weights)])
+                        
+                        threshold = self.profile.get("moabb_confidence_threshold", 0.70) if self.profile else 0.70
+
+                        if score_fwd > threshold:
+                            self.last_command = "FORWARD"
+                            self.arena.update(1)
+                            self.last_conf = score_fwd
+                            self.total_fwd += 1
+                        else:
+                            self.last_command = "IDLE"
+                            self.last_conf = 1.0 - score_fwd
+                            self.total_idle += 1
 
                 live.update(self.build_layout())
 
