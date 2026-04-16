@@ -24,6 +24,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import cross_val_score, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
 from mne.decoding import CSP
 
 import moabb
@@ -55,9 +56,9 @@ def main():
     dataset = PhysionetMI()
     paradigm = LeftRightImagery()
 
-    # Increase to 20 subjects for professional stability
-    subjects = list(range(1, 21))
-    print(f"   Using {len(subjects)} subjects for training")
+    # Increase to 30 subjects for clinical-grade stability
+    subjects = list(range(1, 41))
+    print(f"   Using {len(subjects)} subjects for training (PhysioNet Stage)")
 
     # ── 2. Extract epochs ───────────────────────────────────────────
     print("🔬 Extracting epochs (4s windows for max stability)...")
@@ -68,27 +69,47 @@ def main():
     print(f"   Epochs shape : {X.shape}")
     print(f"   Labels       : {np.unique(y, return_counts=True)}")
 
-    # ── 3. Build Advanced Pipeline ───────────────────────────────────
-    # Adding TangentSpace makes the model much more accurate for BCI
+    # We optimize for Riemannian space which handles noise better than simple linear space
     from pyriemann.estimation import Covariances
+    from pyriemann.classification import MDM
     from pyriemann.tangentspace import TangentSpace
     
-    lda = LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto')
-    scaler = StandardScaler()
+    # We will try 3 architectures and pick the best
+    pipelines = {
+        "MDM": Pipeline([
+            ('cov', Covariances(estimator='lwf')),
+            ('mdm', MDM(metric='riemann'))
+        ]),
+        "TS_LDA": Pipeline([
+            ('cov', Covariances(estimator='lwf')),
+            ('ts', TangentSpace(metric='riemann')),
+            ('lda', LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto'))
+        ]),
+        "TS_SVM": Pipeline([
+            ('cov', Covariances(estimator='lwf')),
+            ('ts', TangentSpace(metric='riemann')),
+            ('svm', SVC(kernel='linear', probability=True))
+        ])
+    }
 
-    pipeline = Pipeline([
-        ('cov',    Covariances(estimator='lwf')),
-        ('ts',     TangentSpace(metric='riemann')),
-        ('scaler', scaler),
-        ('lda',    lda),
-    ])
+    best_score = 0
+    best_name = ""
+    best_pipe = None
 
-    # ── 4. Cross-Subject Evaluation ─────────────────────────────────
-    print("\n📊 Running 5-fold cross-validation...")
+    print("\n📊 Comparing Architectures:")
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    scores = cross_val_score(pipeline, X, y, cv=cv, scoring='accuracy', n_jobs=-1)
-    print(f"   Fold accuracies : {np.round(scores * 100, 1)}")
-    print(f"   Mean accuracy   : {scores.mean() * 100:.2f}%  ±  {scores.std() * 100:.2f}%")
+    
+    for name, pipe in pipelines.items():
+        scores = cross_val_score(pipe, X, y, cv=cv, scoring='accuracy', n_jobs=-1)
+        mean_acc = scores.mean()
+        print(f"   - {name:10}: {mean_acc*100:6.2f}%")
+        if mean_acc > best_score:
+            best_score = mean_acc
+            best_name = name
+            best_pipe = pipe
+
+    print(f"\n🏆 Winner: {best_name} ({best_score*100:.2f}%)")
+    pipeline = best_pipe
 
     # ── 5. Train Final Model on All Data ────────────────────────────
     print("\n🚀 Training final model on all data...")
