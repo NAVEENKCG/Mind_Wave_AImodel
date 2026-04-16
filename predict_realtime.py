@@ -18,7 +18,7 @@ import os
 import pickle
 from collections import deque
 from pathlib import Path
-from rich.console import Console
+from rich.console import Console, Group
 from rich.live import Live
 from rich.panel import Panel
 from rich.layout import Layout
@@ -265,6 +265,28 @@ class RealtimePredictor:
         info.add_row("[bold]ENGINE:[/bold]",     f"[magenta]{self.engine_name}[/magenta]")
 
         layout["sidebar"].update(Panel(info, title="System Info", border_style="dim"))
+        
+        # ── Brainwave Power Bars ─────────────────────────────────────
+        try:
+            latest = self.window[-1]
+            pwr = Table.grid(padding=(0, 1))
+            
+            def make_bar(val, max_v=100):
+                perc = min(1.0, val/max_v)
+                bar_w = 10
+                filled = int(bar_w * perc)
+                return f"[{'█'*filled}{'░'*(bar_w-filled)}]"
+
+            pwr.add_row("THETA", make_bar(latest[1], 100000))
+            pwr.add_row("ALPHA", make_bar(latest[2]+latest[3], 200000))
+            pwr.add_row("BETA ", make_bar(latest[4]+latest[5], 150000))
+            
+            layout["sidebar"].update(Panel(
+                Group(info, "\n[bold]BRAIN POWER[/bold]\n", pwr), 
+                title="System Info", border_style="dim"
+            ))
+        except:
+            layout["sidebar"].update(Panel(info, title="System Info", border_style="dim"))
         
         arena_color = "red" if self.fatigue_state == "CRITICAL" else "yellow" if self.session_age < 120 else "green"
         arena_title = "Virtual Arena" if self.session_age >= 120 else f"Warmup Phase ({int(self.session_age)}/120s)"
