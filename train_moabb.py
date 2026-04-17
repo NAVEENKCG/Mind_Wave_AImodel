@@ -56,9 +56,9 @@ def main():
     dataset = PhysionetMI()
     paradigm = LeftRightImagery()
 
-    # Increase to 30 subjects for clinical-grade stability
-    subjects = list(range(1, 41))
-    print(f"   Using {len(subjects)} subjects for training (PhysioNet Stage)")
+    # Using 20 subjects (Already on disk - no slow downloads needed!)
+    subjects = list(range(1, 21))
+    print(f"   Using {len(subjects)} subjects for training (Offline Stage)")
 
     # ── 2. Extract epochs ───────────────────────────────────────────
     print("🔬 Extracting epochs (4s windows for max stability)...")
