@@ -1,93 +1,76 @@
-# ORBIT AI — Brain-Computer Interface (BCI) System
+# 🧠 ORBIT AI — Universal BCI System (v2.0)
 
-ORBIT AI is a high-performance EEG-based control system designed to classify neural brain states into wheelchair movement commands. Using a single-channel TGAM (ThinkGear) module and a hybrid CNN-LSTM neural network, ORBIT AI translates specific mental tasks into physical navigation.
+ORBIT AI is a state-of-the-art **Brain-Computer Interface** designed for medical wheelchair control. It uses a **Hybrid BCI-EMG** architecture that fuses clinical-grade neural decoding (EEG) with high-speed muscle signal detection (EMG) for maximum safety.
 
-## 🛠 Project Components
+---
 
-- **EEG Hardware:** TGAM module (Fp1 position).
-- **MCU:** ESP32 for signal relay (UART to PC) and wheelchair control.
-- **AI Core:** PyTorch-based Deep Learning (CNN + Bi-LSTM + Self-Attention).
-- **Interface:** Real-time dashboard using Python `Rich`.
+## 🛠️ Technology Stack
 
-## 📐 Wiring Diagram (Text-based)
+- **Hardware:** BioAmp EXG Pill (Neuro-Analog Front-End) + Arduino/ESP32.
+- **AI Core:** **MOABB** (Mother of All BCI Benchmarks).
+- **Processing:** Riemannian Geometry (Tangent Space Mapping + Covariance Estimation).
+- **Safety:** Hybrid Jaw-Clench Stop + 5-Layer Security Pipeline.
+- **Interface:** Real-time TUI (Terminal User Interface) built with Python `Rich`.
 
-```text
-TGAM Module (EEG)          ESP32 (Data)          PC (Python)          ESP32 (Wheelchair)
-[TX] -------------------> [RX] (UART)
-[VCC/GND] <-------------> [3.3V/GND]
-                          [USB] -------------> [Serial COM3]
-                                               [Serial COM5] -------> [RX] (UART)
-                                                                      [GPIOs] ------> [Motor Driver]
-```
+---
 
-## 🧠 Class Definitions & Mental Tasks
+## 📐 Hybrid Command Mapping
 
-| Class | Command | Mental Task | Signal Pattern |
+We use a "Safety-First" mapping strategy:
+
+| Command | Signal Type | Mental / Physical Task | Brain Bio-Marker |
 | :--- | :--- | :--- | :--- |
-| **0** | **IDLE** | Relaxed awake state, no task. | Moderate bands, no dominance. |
-| **1** | **FORWARD** | Intense focus (Serial counting 300-3). | High Beta, Attention > 75. |
-| **2** | **LEFT** | Arithmetic working memory (500-7). | High Theta, Theta/Beta ratio ^. |
-| **3** | **RIGHT** | Spatial imagination (Walk through home). | High Alpha, focus on colors/depth. |
-| **4** | **STOP** | Deep meditation, clear mind. | High Alpha/Theta, Meditation > 75. |
+| **FORWARD** | 🧠 EEG | Imagine Moving Both Feet | Cz Central Power |
+| **LEFT** | 🧠 EEG | Imagine Squeezing Left Hand | C4 Alpha/Beta shift |
+| **RIGHT** | 🧠 EEG | Imagine Squeezing Right Hand | C3 Alpha/Beta shift |
+| **IDLE** | 🧠 EEG | Relaxed state, eyes open | Baseline Baseline |
+| **STOP** | 💪 EMG | **Jaw Clench (Bite Teeth)** | High-Frequency Spike |
+
+---
 
 ## 🚀 Getting Started
 
 ### 1. Installation
-
 ```powershell
 pip install -r requirements.txt
 ```
 
-### 2. Data Collection
-
-Collect at least 100 samples per class using the strict protocol:
-
+### 2. The "Universal Brain" Training
+Instead of training from scratch, we use MOABB to learn from 100+ clinical EEG subjects (PhysioNet + BNCI datasets).
 ```powershell
-python collect_data.py
+python train_moabb.py
+```
+*This script automatically searches for the best engine (MDM vs LDA vs SVM) for your data.*
+
+### 3. Personal Calibration (Personalization)
+Every brain is unique. Run this 45-second session to map your personal bio-thresholds.
+```powershell
+python calibrate.py
 ```
 
-*Follow the 10s preparation -> 5s transition -> 3s collection window.*
-
-### 3. Preprocessing
-
-Run the 8-step pipeline including derived features and augmentation (1 real sample → 9 samples):
-
+### 4. Real-time Dashboard
+Launch the dashboard with the simulator (for testing) or the BioAmp hardware.
 ```powershell
-python preprocess.py
-```
+# For Simulator
+python simulate_tgam.py
+python predict_realtime.py
 
-### 4. Training
-
-Train the CNN-LSTM hybrid model with Cosine Annealing:
-
-```powershell
-python train.py
-```
-
-### 5. Evaluation
-
-Check accuracy and safety metrics (F1 scores, confusion matrix):
-
-```powershell
-python evaluate.py
-```
-
-### 6. Real-time Inference
-
-Launch the live dashboard and control the wheelchair:
-
-```powershell
+# For Real Hardware
+python bridge_bioamp.py
 python predict_realtime.py
 ```
 
-## 🛡 Performance Benchmarks (Target)
+---
 
-- **IDLE Accuracy:** > 85% (Safety critical)
-- **STOP Response:** < 1.0s (Interrupt priority)
-- **False Positives:** < 5% from IDLE state.
+## 🛡️ 5-Layer Safety Pipeline
+The `predict_realtime.py` engine implements:
+1.  **Signal Quality Gate:** Rejects commands if electrodes have poor contact.
+2.  **Warmup Gate:** 2-minute "Brain-Settle" period required before movement.
+3.  **Fatigue Monitor:** Auto-slows the chair if drowsiness (Theta waves) is detected.
+4.  **EMG Emergency Stop:** Jaw clench stops the chair in < 100ms.
+5.  **Weighted Voting:** Smooths movement by voting on the last 3 predictions.
 
-## ⚠️ Troubleshooting
+---
 
-- **No Data:** Check if Serial port `COM3` is correct in `config.py`.
-- **Poor Signal:** Ensure the forehead sensor (Fp1) is clean and the ear clip is secure.
-- **Inconsistent Control:** Recalibrate your mental states; ensure 15s rest between triggers.
+## 🗺️ System Architecture
+For a deep dive into the code structure and data pipelines, see [ARCHITECTURE.md](./ARCHITECTURE.md).

@@ -28,7 +28,7 @@ from sklearn.svm import SVC
 from mne.decoding import CSP
 
 import moabb
-from moabb.datasets import PhysionetMI
+from moabb.datasets import PhysionetMI, BNCI2014_001 as BNCI2014001
 from moabb.paradigms import LeftRightImagery
 from moabb.evaluations import WithinSessionEvaluation
 
@@ -49,25 +49,41 @@ def main():
     print("  ORBIT AI -- MOABB Training Pipeline")
     print("=" * 60)
 
-    # -- 1. Dataset & Paradigm ─────────────────────────────────────────
-    # PhysionetMI: 109 subjects, imagined left/right hand movement
-    # LeftRightImagery: extracts epochs, labels left=0, right=1
-    print("\n[+] Loading PhysionetMI dataset (auto-downloads on first run)...")
-    dataset = PhysionetMI()
-    paradigm = LeftRightImagery()
-
-    # Using 20 subjects (Already on disk - no slow downloads needed!)
-    subjects = list(range(1, 21))
-    print(f"   Using {len(subjects)} subjects for training (Offline Stage)")
-
-    # ── 2. Extract epochs ───────────────────────────────────────────
-    print("🔬 Extracting epochs (4s windows for max stability)...")
-    # Using longer windows (4s) makes the brain patterns much clearer to the AI
+    # -- 1. Universal Datasets ─────────────────────────────────────────
+    # We combine PhysioNet (General) with BNCI2014-001 (High Quality)
+    print("\n[+] Loading Universal Datasets...")
+    try:
+        datasets = [PhysionetMI(), BNCI2014001()]
+    except NameError:
+        print("   ⚠ Could not find BNCI2014001. Falling back to PhysioNet only.")
+        datasets = [PhysionetMI()]
     paradigm = LeftRightImagery(tmin=0, tmax=4)
-    X, y, meta = paradigm.get_data(dataset=dataset, subjects=subjects)
+
+    X_list = []
+    y_list = []
+
+    for ds in datasets:
+        print(f"   ► Processing {ds.code}...")
+        # Take a balanced slice from each
+        n_subs = 25 if "physionet" in ds.code.lower() else len(ds.subject_list)
+        subs = ds.subject_list[:n_subs]
+        
+        try:
+            curr_X, curr_y, _ = paradigm.get_data(dataset=ds, subjects=subs)
+            X_list.append(curr_X)
+            y_list.append(curr_y)
+            print(f"     Loaded {len(curr_y)} epochs from {len(subs)} subjects.")
+        except Exception as e:
+            print(f"     ⚠ Error loading {ds.code}: {e}")
+
+    # Combine everything into one massive brain-pool
+    X = np.concatenate(X_list, axis=0)
+    y = np.concatenate(y_list, axis=0)
     
-    print(f"   Epochs shape : {X.shape}")
-    print(f"   Labels       : {np.unique(y, return_counts=True)}")
+    print(f"\n✅ UNIVERSAL POOL READY:")
+    print(f"   Total Epochs: {X.shape[0]}")
+    print(f"   Samples/Ch : {X.shape[2]}")
+    print(f"   Labels      : {np.unique(y, return_counts=True)}")
 
     # We optimize for Riemannian space which handles noise better than simple linear space
     from pyriemann.estimation import Covariances
