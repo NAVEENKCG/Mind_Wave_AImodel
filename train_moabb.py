@@ -57,7 +57,9 @@ def main():
     except NameError:
         print("   ⚠ Could not find BNCI2014001. Falling back to PhysioNet only.")
         datasets = [PhysionetMI()]
-    paradigm = LeftRightImagery(tmin=0, tmax=4)
+    # Selecting common motor cortex channels for universal compatibility
+    channels = ['C3', 'Cz', 'C4']
+    paradigm = LeftRightImagery(tmin=0, tmax=4, channels=channels)
 
     X_list = []
     y_list = []
