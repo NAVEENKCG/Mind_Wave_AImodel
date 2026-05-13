@@ -203,7 +203,7 @@ class RealtimePredictor:
         CRITICAL ALIGNMENT (v5.0):
         1. Channel count must match training.
         2. Epoch length must match training.
-        3. Z-score ONLY for TangentSpace pipelines (not MDM).
+        3. NO z-score normalization (Riemannian models handle scaling internally).
         4. Use predict() → then derive probability for smoothing.
         """
         raw_epoch  = raw_dict.get("_raw_epoch")
@@ -231,16 +231,10 @@ class RealtimePredictor:
             repeats = int(np.ceil(expected_times / epoch.shape[1]))
             epoch = np.tile(epoch, (1, repeats))[:, :expected_times]
 
-        # ── Z-score normalization (only for TangentSpace pipelines) ──
-        # MDM operates directly on covariance matrices in Riemannian space;
-        # z-scoring would destroy the signal's spatial structure.
-        uses_ts = self.moabb_stats.get('uses_tangent_space', False)
-        if uses_ts:
-            ch_mean = self.moabb_stats.get('ch_mean')
-            ch_std  = self.moabb_stats.get('ch_std')
-            if ch_mean is not None and ch_std is not None:
-                for c in range(epoch.shape[0]):
-                    epoch[c] = (epoch[c] - ch_mean[c]) / ch_std[c]
+        # ── Note: No Z-score normalization ───────────────────────────────
+        # Riemannian pipelines (Covariances → TS) operate directly on
+        # covariance matrices in Riemannian space; z-scoring would destroy
+        # the signal's spatial structure.
 
         # Reshape to (1, n_ch, n_times)
         X = epoch[np.newaxis, :, :]

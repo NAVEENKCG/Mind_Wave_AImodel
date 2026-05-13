@@ -27,7 +27,6 @@ with open(STATS_PATH, 'rb') as f:
     stats = pickle.load(f)
 
 step_names = [name for name, _ in pipeline.steps]
-uses_ts = 'ts' in step_names
 ch_mean = stats['ch_mean']
 ch_std  = stats['ch_std']
 expected_ch = stats['n_channels']
@@ -47,10 +46,6 @@ def classify_epoch(epoch):
     elif ep.shape[1] < expected_times:
         repeats = int(np.ceil(expected_times / ep.shape[1]))
         ep = np.tile(ep, (1, repeats))[:, :expected_times]
-    
-    if uses_ts:
-        for c in range(ep.shape[0]):
-            ep[c] = (ep[c] - ch_mean[c]) / ch_std[c]
     
     X = ep[np.newaxis, :, :]
     pred = pipeline.predict(X)[0]

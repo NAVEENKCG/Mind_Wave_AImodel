@@ -52,19 +52,22 @@ STATS_OUT = DATA_DIR   / "moabb_stats.pkl"
 # ── Constants ────────────────────────────────────────────────────
 SFREQ = 160           # PhysioNet sample rate
 EPOCH_SAMPLES = 160   # 1 second at 160Hz (matches simulator chunk_size)
-N_SUBJECTS = 20
+N_SUBJECTS = 5     # 5 subjects × 4 runs = enough for demo, fast to download
 
 
 def download_edf(subject_id, run_id):
     """Download a specific PhysioNet EEG Motor Imagery run."""
     url = f"https://physionet.org/files/eegmmidb/1.0.0/S{subject_id:03d}/S{subject_id:03d}R{run_id:02d}.edf"
+    print(f"      Downloading S{subject_id:03d}R{run_id:02d}...", end="", flush=True)
     try:
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp:
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:
                 tmp.write(resp.read())
+            print(" OK", flush=True)
             return tmp.name
-    except Exception:
+    except Exception as e:
+        print(f" FAILED ({e})", flush=True)
         return None
 
 
@@ -234,8 +237,9 @@ def main():
     ch_mean = np.mean(X, axis=(0, 2))
     ch_std  = np.std(X,  axis=(0, 2)) + 1e-6
 
-    # Record which pipeline type was selected (needed at inference)
-    uses_tangent_space = 'ts' in [name for name, _ in pipeline.steps]
+    # Riemannian pipelines (Cov → TS → classifier) must NOT have external
+    # z-score normalization. The Covariances estimator handles scale internally.
+    uses_tangent_space = False
 
     stats = {
         'ch_mean'          : ch_mean,
