@@ -1,6 +1,8 @@
-# ORBIT AI — Visual Workflow Architecture
+# ORBIT AI — Visual Workflow & Step-by-Step Simulation
 
-This flowchart visually maps how data moves through the codebase, from your real-world hardware into the mathematical core of the AI, and lastly into the Virtual Arena.
+This document maps how data moves through the codebase and provides a straightforward guide to running a simulation.
+
+## 🗺️ Visual Architecture
 
 ```mermaid
 graph TD
@@ -10,70 +12,54 @@ graph TD
     classDef model fill:#0f172a,stroke:#22c55e,stroke-width:2px,color:#fff
     classDef ui fill:#020617,stroke:#f59e0b,stroke-width:2px,color:#fff
 
-    subgraph Data Sources [1. Input / Hardware]
-        BIO[BioAmp EXG Pill]:::hardware
-        SIM[PhysioNet Medical Datasets]:::hardware
+    subgraph Step 1: Input Sources
+        BIO[Real Hardware: BioAmp Pill]:::hardware
+        SIM[Simulator: EDF Medical File]:::hardware
     end
 
-    subgraph Networking [2. Signal Bridges]
-        B_BIO(bridge_bioamp.py)
-        B_SIM(simulate_tgam.py)
-        TCP((TCP Socket<br/>Port 9999))
+    subgraph Step 2: Signal Bridges
+        B_BIO(bridge_bioamp.py<br/>Reads serial data)
+        B_SIM(simulate_tgam.py<br/>Reads EDF links)
+        TCP((Network Socket<br/>Port 9999))
         
-        BIO -->|Analog Serial| B_BIO
-        SIM -->|EDF Arrays| B_SIM
-        B_BIO -->|JSON Stream| TCP
-        B_SIM -->|JSON Stream| TCP
+        BIO --> B_BIO
+        SIM --> B_SIM
+        B_BIO -->|Raw Signals| TCP
+        B_SIM -->|Raw Signals| TCP
     end
 
-    subgraph Training & Brain Profiling [3. Intelligence]
+    subgraph Step 3: Intelligence & Inference
         TRAIN[train_moabb.py]:::script
         CAL[calibrate.py]:::script
-        MODEL[models/moabb_csp_lda.pkl]:::model
-        PROF[models/personal_profile.json]:::model
+        PREDICT[predict_realtime.py<br/>AI Core & Safety Gates]:::script
+        MODEL[moabb_csp_lda.pkl]:::model
+        PROF[personal_profile.json]:::model
         
-        TRAIN -->|Saves Pre-Trained| MODEL
-        TCP -->|User Brainwaves| CAL
-        CAL -->|Saves Bio-Baselines| PROF
+        TRAIN -->|Creates| MODEL
+        CAL -->|Creates| PROF
+        
+        TCP -->|Streams to| PREDICT
+        MODEL -.->|Used by| PREDICT
+        PROF -.->|Used by| PREDICT
     end
 
-    subgraph Inference Core [4. predict_realtime.py]
-        direction TB
-        GATE{Signal Gate<br/>Noisy / Flat?}
-        FATIGUE{Fatigue Gate<br/>Theta Ratio > 1.5?}
-        PREDICT[MOABB Pipeline<br/>Inference]
-        SMOOTH[Weighted Vote<br/>Debounce]
-        
-        TCP --> GATE
-        MODEL -.-> PREDICT
-        PROF -.-> FATIGUE
-        
-        GATE --Valid--> FATIGUE
-        FATIGUE --Safe--> PREDICT
-        FATIGUE --Critical--> STOP[Force IDLE]
-        PREDICT --> SMOOTH
-    end
-
-    subgraph Output [5. Execution]
+    subgraph Step 4: Output / Execution
         ARENA(Virtual Wheelchair Arena):::ui
-        WEB(Next.js Web Dashboard):::ui
-        
-        SMOOTH -->|Move Command| ARENA
-        SMOOTH -.->|WebSocket / REST| WEB
-        STOP --> ARENA
+        PREDICT -->|FORWARD / IDLE| ARENA
     end
 
     %% Class Attachments
     class BIO,SIM hardware
-    class B_BIO,B_SIM,TRAIN,CAL script
+    class B_BIO,B_SIM,TRAIN,CAL,PREDICT script
     class MODEL,PROF model
-    class ARENA,WEB ui
+    class ARENA ui
 ```
 
-## System Breakdown
+## 🧠 System Breakdown (Simplified)
 
-1. **Input:** Data comes from either real-world hardware (`bioamp`) or a software simulator (`tgam`).
-2. **Network Bridge:** This data is converted to JSON and fired continuously via a local networking socket (so multiple scripts can read it simultaneously).
-3. **Intelligence Setup:** The heavy math takes place here. `train_moabb` creates the general AI brain, while `calibrate.py` creates a "profile" of your normal resting states.
-4. **The Live Core:** `predict_realtime.py` acts as the security guard. It ensures the signal is good, ensures you aren't falling asleep, asks the AI for a decision, and smooths the result.
-5. **Execution:** The final command moves the virtual machine!
+1. **Input:** You either connect the actual **BioAmp hardware** or run the **Simulator** using a medical dataset link.
+2. **Network Bridge:** This data is forwarded locally to Port 9999 so the AI can listen to it.
+3. **Intelligence Setup:** `train_moabb.py` builds the core AI brain, and `calibrate.py` tunes it to your resting state.
+4. **The Live Core:** `predict_realtime.py` listens to Port 9999, checks for signal noise/fatigue (safety gates), and asks the AI for a decision.
+5. **Execution:** The final command (e.g., `FORWARD`) moves the virtual wheelchair in the dashboard.
+

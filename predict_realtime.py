@@ -120,6 +120,7 @@ class RealtimePredictor:
         self.fatigue_history = deque(maxlen=50) # 5 seconds
         self.fatigue_state = "NORMAL"
         self.session_start = time.time()
+        self.session_age = 0
         self.signal_msg = "AWAITING SIGNAL"
 
         # ── Connect to Simulator ─────────────────────────────────────
@@ -197,8 +198,13 @@ class RealtimePredictor:
     # ── Classifiers ──────────────────────────────────────────────────
     def classify_moabb(self, raw_dict):
         """
-        CSP+LDA classifier using raw multi-channel epoch.
-        CSP learns spatial filters → hardware-independent features.
+        Riemannian classifier using raw multi-channel epoch.
+        
+        CRITICAL ALIGNMENT (v5.0):
+        1. Channel count must match training.
+        2. Epoch length must match training.
+        3. Z-score ONLY for TangentSpace pipelines (not MDM).
+        4. Use predict() → then derive probability for smoothing.
         """
         raw_epoch  = raw_dict.get("_raw_epoch")
         sfreq      = raw_dict.get("_sfreq", 160)
@@ -209,22 +215,47 @@ class RealtimePredictor:
 
         epoch = np.array(raw_epoch, dtype=np.float64)  # (n_ch, n_times)
 
-        # Reshape to (1, n_ch, n_times) — what CSP expects
+        # ── Channel alignment ────────────────────────────────────────
+        expected_ch = self.moabb_stats.get('n_channels', epoch.shape[0])
+        if epoch.shape[0] > expected_ch:
+            epoch = epoch[:expected_ch, :]
+        elif epoch.shape[0] < expected_ch:
+            pad = np.zeros((expected_ch - epoch.shape[0], epoch.shape[1]))
+            epoch = np.vstack([epoch, pad])
+
+        # ── Epoch length alignment ───────────────────────────────────
+        expected_times = self.moabb_stats.get('n_times', epoch.shape[1])
+        if epoch.shape[1] > expected_times:
+            epoch = epoch[:, :expected_times]
+        elif epoch.shape[1] < expected_times:
+            repeats = int(np.ceil(expected_times / epoch.shape[1]))
+            epoch = np.tile(epoch, (1, repeats))[:, :expected_times]
+
+        # ── Z-score normalization (only for TangentSpace pipelines) ──
+        # MDM operates directly on covariance matrices in Riemannian space;
+        # z-scoring would destroy the signal's spatial structure.
+        uses_ts = self.moabb_stats.get('uses_tangent_space', False)
+        if uses_ts:
+            ch_mean = self.moabb_stats.get('ch_mean')
+            ch_std  = self.moabb_stats.get('ch_std')
+            if ch_mean is not None and ch_std is not None:
+                for c in range(epoch.shape[0]):
+                    epoch[c] = (epoch[c] - ch_mean[c]) / ch_std[c]
+
+        # Reshape to (1, n_ch, n_times)
         X = epoch[np.newaxis, :, :]
 
+        # ── Inference ─────────────────────────────────────────────────
+        pred = self.moabb_pipeline.predict(X)[0]
+        
+        # Try to get a probability for weighted voting
         try:
-            proba = self.moabb_pipeline.predict_proba(X)
-            # classes: 0=imagery_left (IDLE), 1=imagery_right (FORWARD)
-            forward_prob = float(proba[0][1])
+            decision = float(self.moabb_pipeline.decision_function(X)[0])
+            decision = np.clip(decision, -5, 5)
+            forward_prob = 1.0 / (1.0 + np.exp(-decision))
         except Exception:
-            # LinearDiscriminantAnalysis with shrinkage doesn't support predict_proba natively.
-            # Instead, we use decision_function (distance to boundary) and pass it through a sigmoid.
-            try:
-                decision = float(self.moabb_pipeline.decision_function(X)[0])
-                forward_prob = 1.0 / (1.0 + np.exp(-decision))
-            except Exception:
-                pred = self.moabb_pipeline.predict(X)[0]
-                forward_prob = 1.0 if pred == 1 else 0.0
+            # MDM and some pipelines don't have decision_function
+            forward_prob = 0.95 if pred == 1 else 0.05
 
         return forward_prob, 1.0 - forward_prob
 
@@ -271,15 +302,19 @@ class RealtimePredictor:
             latest = self.window[-1]
             pwr = Table.grid(padding=(0, 1))
             
-            def make_bar(val, max_v=100):
-                perc = min(1.0, val/max_v)
+            def make_bar(val):
+                # The simulator returns power in decibels (dB), which are negative 
+                # (usually around -100 to -140 for EEG in Volts). 
+                # We shift it by +150 to make it a positive percentage.
+                shifted = max(0, val + 150) 
+                perc = min(1.0, shifted / 60.0)
                 bar_w = 10
                 filled = int(bar_w * perc)
                 return f"[{'█'*filled}{'░'*(bar_w-filled)}]"
 
-            pwr.add_row("THETA", make_bar(latest[1], 100000))
-            pwr.add_row("ALPHA", make_bar(latest[2]+latest[3], 200000))
-            pwr.add_row("BETA ", make_bar(latest[4]+latest[5], 150000))
+            pwr.add_row("THETA", make_bar(latest[1]))
+            pwr.add_row("ALPHA", make_bar((latest[2]+latest[3])/2))
+            pwr.add_row("BETA ", make_bar((latest[4]+latest[5])/2))
             
             layout["sidebar"].update(Panel(
                 Group(info, "\n[bold]BRAIN POWER[/bold]\n", pwr), 
@@ -288,8 +323,8 @@ class RealtimePredictor:
         except:
             layout["sidebar"].update(Panel(info, title="System Info", border_style="dim"))
         
-        arena_color = "red" if self.fatigue_state == "CRITICAL" else "yellow" if self.session_age < 120 else "green"
-        arena_title = "Virtual Arena" if self.session_age >= 120 else f"Warmup Phase ({int(self.session_age)}/120s)"
+        arena_color = "red" if self.fatigue_state == "CRITICAL" else "yellow" if self.session_age < 5 else "green"
+        arena_title = "Virtual Arena" if self.session_age >= 5 else f"Warmup Phase ({int(self.session_age)}/5s)"
         layout["arena"].update(Panel(self.arena.render(), title=arena_title, border_style=arena_color))
         return layout
 
@@ -343,7 +378,7 @@ class RealtimePredictor:
                         continue
 
                     # 3. Warmup Phase Override
-                    if self.session_age < 120:
+                    if self.session_age < 5:
                         self.last_command = "CALIBRATING"
                         self.signal_msg = "[yellow]WARMUP[/yellow]"
                         live.update(self.build_layout())
