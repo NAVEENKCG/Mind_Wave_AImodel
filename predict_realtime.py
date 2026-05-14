@@ -244,14 +244,23 @@ class RealtimePredictor:
         
         # Try to get a probability for weighted voting
         try:
-            decision = float(self.moabb_pipeline.decision_function(X)[0])
-            decision = np.clip(decision, -5, 5)
-            forward_prob = 1.0 / (1.0 + np.exp(-decision))
-        except Exception:
-            # MDM and some pipelines don't have decision_function
-            forward_prob = 0.95 if pred == 1 else 0.05
+            # TS_SVM with probability=True supports this
+            probs = self.moabb_pipeline.predict_proba(X)[0]
+            forward_prob = float(probs[1])
+            idle_prob = float(probs[0])
+        except AttributeError:
+            try:
+                # Fallback for models with decision_function
+                decision = float(self.moabb_pipeline.decision_function(X)[0])
+                decision = np.clip(decision, -5, 5)
+                forward_prob = 1.0 / (1.0 + np.exp(-decision))
+                idle_prob = 1.0 - forward_prob
+            except Exception:
+                # MDM fallback
+                forward_prob = 0.95 if pred == 1 else 0.05
+                idle_prob = 1.0 - forward_prob
 
-        return forward_prob, 1.0 - forward_prob
+        return forward_prob, idle_prob
 
     def classify_biosensor(self, raw_dict):
         """
@@ -391,7 +400,8 @@ class RealtimePredictor:
                         weights = [0.2, 0.3, 0.5]
                         score_fwd = sum([p[0] * w for p, w in zip(self.recent_preds, weights)])
                         
-                        threshold = self.profile.get("moabb_confidence_threshold", 0.70) if self.profile else 0.70
+                        # Use 0.50 threshold to match the binary classifier validated in diagnose.py
+                        threshold = self.profile.get("moabb_confidence_threshold", 0.50) if self.profile else 0.50
 
                         if score_fwd > threshold:
                             self.last_command = "FORWARD"
