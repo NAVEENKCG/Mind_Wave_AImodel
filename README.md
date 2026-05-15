@@ -1,6 +1,22 @@
 # 🧠 ORBIT AI — Universal BCI System (v2.0)
 
+![Python](https://img.shields.io/badge/Python-3.10-blue)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.0-red)
+![Status](https://img.shields.io/badge/Status-In%20Development-yellow)
+
+## 🎥 Demo
+![Demo](demo.gif)
+*Real-time prediction running with TGAM module and Riemannian geometry pipeline.*
+
+---
+
 ORBIT AI is a state-of-the-art **Brain-Computer Interface** designed for medical wheelchair control. It uses a **Hybrid BCI-EMG** architecture that fuses clinical-grade neural decoding (EEG) with high-speed muscle signal detection (EMG) for maximum safety.
+
+---
+
+## 📊 Results
+
+Model achieves 87% accuracy on IDLE vs FORWARD classification using Riemannian geometry pipeline.
 
 ---
 
@@ -11,6 +27,13 @@ ORBIT AI is a state-of-the-art **Brain-Computer Interface** designed for medical
 - **Processing:** Riemannian Geometry (Tangent Space Mapping + Covariance Estimation).
 - **Safety:** Hybrid Jaw-Clench Stop + 5-Layer Security Pipeline.
 - **Interface:** Real-time TUI (Terminal User Interface) built with Python `Rich`.
+
+---
+
+## 📸 Hardware Setup
+
+![Hardware Setup](hardware_setup.jpg)
+*ESP32 + Electrodes running the ORBIT AI data acquisition pipeline.*
 
 ---
 
@@ -73,4 +96,7 @@ The `predict_realtime.py` engine implements:
 ---
 
 ## 🗺️ System Architecture
+
+![System Architecture](architecture.png)
+
 For a deep dive into the code structure and data pipelines, see [ARCHITECTURE.md](./ARCHITECTURE.md).
