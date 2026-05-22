@@ -143,7 +143,16 @@ def main():
         REPORTS_DIR.mkdir(parents=True)
         
     report_text = generate_report_text(stats, date_str)
-    print("\n" + report_text + "\n")
+    try:
+        print("\n" + report_text + "\n")
+    except UnicodeEncodeError:
+        ascii_report = report_text
+        ascii_report = ascii_report.replace("—", "-")
+        ascii_report = ascii_report.replace("━━━━━━━━━━━━━━━━━━━━━━━━━", "-"*25)
+        ascii_report = ascii_report.replace("█", "#")
+        ascii_report = ascii_report.replace("✅", "[OK]")
+        ascii_report = ascii_report.replace("⚠️", "[!]")
+        print("\n" + ascii_report + "\n")
     
     pdf_path = REPORTS_DIR / f"report_{date_str}.pdf"
     generate_pdf(report_text, pdf_path)

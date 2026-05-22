@@ -57,14 +57,16 @@ print(f"\n{'='*60}")
 print("  MOTOR_IMAGERY R04 (Event-Aligned, expect FORWARD)")
 print(f"{'='*60}")
 
-url = "https://physionet.org/files/eegmmidb/1.0.0/S001/S001R04.edf"
-req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp:
-    temp_path = tmp.name
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        tmp.write(resp.read())
+cache_path = DATA_DIR / "S001R04.edf"
+if not cache_path.exists():
+    url = "https://physionet.org/files/eegmmidb/1.0.0/S001/S001R04.edf"
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    print("   Downloading R04 (event-aligned) file from PhysioNet...")
+    with open(cache_path, "wb") as f:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            f.write(resp.read())
 
-raw = mne.io.read_raw_edf(temp_path, preload=True, verbose=False)
+raw = mne.io.read_raw_edf(cache_path, preload=True, verbose=False)
 raw.filter(1, 45, verbose=False)
 sfreq = raw.info['sfreq']
 
@@ -105,7 +107,6 @@ for ev in events:
 
 print(f"\n   SUMMARY: FORWARD={fwd_count}/{total}  IDLE={idle_count}/{total}")
 raw.close()
-Path(temp_path).unlink(missing_ok=True)
 
 
 # ── Test 2: Resting State R01 (random chunks, expect IDLE) ──────
@@ -113,14 +114,16 @@ print(f"\n{'='*60}")
 print("  RESTING_STATE R01 (Random Chunks, expect IDLE)")
 print(f"{'='*60}")
 
-url = "https://physionet.org/files/eegmmidb/1.0.0/S001/S001R01.edf"
-req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp:
-    temp_path = tmp.name
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        tmp.write(resp.read())
+cache_path_r01 = DATA_DIR / "S001R01.edf"
+if not cache_path_r01.exists():
+    url = "https://physionet.org/files/eegmmidb/1.0.0/S001/S001R01.edf"
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    print("   Downloading R01 (resting state) file from PhysioNet...")
+    with open(cache_path_r01, "wb") as f:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            f.write(resp.read())
 
-raw = mne.io.read_raw_edf(temp_path, preload=True, verbose=False)
+raw = mne.io.read_raw_edf(cache_path_r01, preload=True, verbose=False)
 raw.filter(1, 45, verbose=False)
 data = raw.get_data()
 sfreq = raw.info['sfreq']
@@ -142,7 +145,6 @@ for i in range(n_chunks):
 
 print(f"\n   SUMMARY: FORWARD={fwd_count}/{n_chunks}  IDLE={idle_count}/{n_chunks}")
 raw.close()
-Path(temp_path).unlink(missing_ok=True)
 
 print(f"\n{'='*60}")
 print("  Diagnostic Complete")
@@ -154,55 +156,58 @@ def run_system_diagnostics(stats):
     import time
     from datetime import datetime
     
-    print("\n┌─────────────────────────────────────┐")
-    print("│ ORBIT AI — SYSTEM DIAGNOSTICS       │")
-    print("├─────────────────────────────────────┤")
+    print("\n+-------------------------------------+")
+    print("| ORBIT AI - SYSTEM DIAGNOSTICS       |")
+    print("+-------------------------------------+")
 
     # Hardware
     try:
         import serial.tools.list_ports
         ports = [p.device for p in serial.tools.list_ports.comports()]
-        com_status = "✅ COM3" if "COM3" in ports else "⚠️ Not found"
+        com_status = "OK (COM3)" if "COM3" in ports else "WARN (N/A)"
     except ImportError:
-        com_status = "❓ Unknown"
+        com_status = "? Unknown"
         
-    print(f"│ Hardware    ESP32        {com_status.ljust(10)} │")
+    print(f"| Hardware    ESP32        {com_status.ljust(10)} |")
     
     # Signal
-    print(f"│ Signal      TGAM         ✅ GOOD       │")
+    sig_status = "OK GOOD"
+    print(f"| Signal      TGAM         {sig_status.ljust(10)} |")
     
     # Model
     model_acc = "87.3%"
     if stats and 'cv_mean' in stats:
         model_acc = f"{stats['cv_mean']*100:.1f}%"
-    print(f"│ Model       best_model   ✅ {model_acc.ljust(8)} │")
+    model_acc_str = f"OK ({model_acc})"
+    print(f"| Model       best_model   {model_acc_str.ljust(10)} |")
     
     # Data
-    print(f"│ Data        30,754 smp   ✅ OK         │")
+    data_status = "OK"
+    print(f"| Data        30,754 smp   {data_status.ljust(10)} |")
     
     # Python
     py_version = platform.python_version()
-    py_status = "✅ OK" if sys.version_info >= (3, 8) else "⚠️ Low"
+    py_status = "OK" if sys.version_info >= (3, 8) else "Low"
     # Ensure exact formatting of table borders
     py_ver_pad = py_version[:7].ljust(12)
     py_stat_pad = py_status.ljust(10)
-    print(f"│ Python      {py_ver_pad} {py_stat_pad} │")
+    print(f"| Python      {py_ver_pad} {py_stat_pad} |")
     
     # PyTorch
     try:
         import torch
         pt_version = torch.__version__.split('+')[0]
-        pt_status = "✅ OK"
-        cuda_status = "✅ GPU" if torch.cuda.is_available() else "⚠️ CPU"
+        pt_status = "OK"
+        cuda_status = "GPU" if torch.cuda.is_available() else "CPU"
     except ImportError:
         pt_version = "Missing"
-        pt_status = "❌ Fail"
-        cuda_status = "❌ N/A"
+        pt_status = "Fail"
+        cuda_status = "N/A"
         
     pt_ver_pad = pt_version[:7].ljust(12)
     pt_stat_pad = pt_status.ljust(10)
-    print(f"│ PyTorch     {pt_ver_pad} {pt_stat_pad} │")
-    print(f"│ CUDA        Not found    {cuda_status.ljust(10)} │")
-    print("└─────────────────────────────────────┘")
+    print(f"| PyTorch     {pt_ver_pad} {pt_stat_pad} |")
+    print(f"| CUDA        Not found    {cuda_status.ljust(10)} |")
+    print("+-------------------------------------+")
 
 run_system_diagnostics(stats)
