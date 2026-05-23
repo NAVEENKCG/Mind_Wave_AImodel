@@ -26,6 +26,7 @@ from rich.table import Table
 from scipy.signal import welch
 
 from config import *
+from logger_orbit import logger as orbit_logger
 
 COMMANDS = {0: "IDLE", 1: "FORWARD"}
 
@@ -122,6 +123,9 @@ class RealtimePredictor:
         self.session_start = time.time()
         self.session_age = 0
         self.signal_msg = "AWAITING SIGNAL"
+
+        # Start session logging
+        orbit_logger.log_session_start()
 
         # ── Connect to Simulator ─────────────────────────────────────
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -336,13 +340,13 @@ class RealtimePredictor:
         # Keep last raw_dict for MOABB (needs full packet, not just features)
         self._last_raw = {}
 
-        with Live(self.build_layout(), refresh_per_second=10,
-                  screen=True, console=self.console) as live:
+        try:
+          with Live(self.build_layout(), refresh_per_second=10,
+                    screen=True, console=self.console) as live:
             while True:
                 raw = self.get_data()
                 if raw is None:
-                    time.sleep(0.01)
-                    live.update(self.build_layout())
+                    time.sleep(0.05)
                     continue
 
                 self._last_raw = raw
@@ -413,7 +417,17 @@ class RealtimePredictor:
                             self.last_conf = 1.0 - score_fwd
                             self.total_idle += 1
 
+                        # Log event for session reports
+                        orbit_logger.log_event(
+                            self.last_command, self.last_conf,
+                            self.signal_msg, self.fatigue_state
+                        )
+
                 live.update(self.build_layout())
+        except KeyboardInterrupt:
+            pass
+        finally:
+            orbit_logger.log_session_end()
 
 
 if __name__ == "__main__":

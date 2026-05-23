@@ -74,8 +74,8 @@ def evaluate_model():
     # Feature labels for plotting
     feature_labels = [
         'delta', 'theta', 'lowAlpha', 'highAlpha', 'lowBeta', 'highBeta', 'lowGamma', 'highGamma',
-        'attention', 'meditation', 'blink', 'theta_beta_ratio', 'alpha_beta_ratio', 
-        'attn_med_diff', 'total_power', 'beta_ratio', 'alpha_ratio', 'theta_ratio'
+        'attention', 'meditation', 'blink', 'total_power', 'theta_beta_ratio', 'alpha_beta_ratio', 
+        'attn_med_diff', 'beta_ratio', 'alpha_ratio', 'theta_ratio'
     ]
 
     for i in range(X_test.shape[2]):

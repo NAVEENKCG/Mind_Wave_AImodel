@@ -82,9 +82,11 @@ def create_sliding_windows(df: pd.DataFrame):
 
 def run_preprocessing_pipeline():
     """Execute the full 8-step preprocessing pipeline."""
-    raw_path = DATA_DIR / "raw_data.csv"
+    raw_path = DATA_DIR / "personal_raw_data.csv"
     if not raw_path.exists():
-        logger.error("raw_data.csv not found. Run collect_data.py first.")
+        raw_path = DATA_DIR / "raw_data.csv"
+    if not raw_path.exists():
+        logger.error("No raw data file (personal_raw_data.csv or raw_data.csv) found. Run collect_data.py first.")
         return
 
     # STEP 1: LOAD AND VALIDATE

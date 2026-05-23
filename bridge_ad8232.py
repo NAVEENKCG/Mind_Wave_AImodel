@@ -32,47 +32,64 @@ def main():
     
     try:
         ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.1)
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect(('127.0.0.1', SOCKET_PORT))
-        print("✅ Connected to Arduino and Dashboard!")
+        print(f"✅ Connected to Arduino on {SERIAL_PORT}")
     except Exception as e:
-        print(f"❌ Connection Error: {e}")
+        print(f"❌ Could not open Serial Port {SERIAL_PORT}: {e}")
+        print("   Check your Arduino connection and COM port number.")
         return
 
     buffer = []
-    
-    while True:
-        try:
-            line = ser.readline().decode('utf-8').strip()
-            if line and line.isdigit():
-                val = int(line)
-                
-                # Normalize 10-bit analog (0-1023) to microvolts range roughly
-                val = (val - 512) * 0.5 
-                buffer.append(val)
-                
-                if len(buffer) >= 10:  # Process in small chunks
-                    filtered = bandpass_filter(buffer, fs=SAMPLE_RATE)
-                    
-                    # Package for the Dashboard
-                    # We broadcast the single sensor across all 64 channels the AI expects
-                    latest_val = filtered[-1]
-                    packet = {
-                        "data": [latest_val] * CHANNELS
-                    }
-                    
-                    client_socket.sendall(json.dumps(packet).encode('utf-8') + b'\n')
-                    buffer = buffer[-5:] # Keep a small overlap for smooth filtering
-                    
-        except KeyboardInterrupt:
-            print("\n🛑 Stopping AD8232 Bridge...")
-            break
-        except Exception as e:
-            print(f"⚠ Signal glitch: {e}")
-            break
+    chunk_size = int(SAMPLE_RATE * 1.0)  # 1 second of data
 
-    ser.close()
-    client_socket.close()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server_socket.bind(('127.0.0.1', SOCKET_PORT))
+        server_socket.listen(1)
+        print(f"\n📡 AD8232 Bridge listening on 127.0.0.1:{SOCKET_PORT}")
+        print("⏳ Waiting for Dashboard to connect...")
+
+        while True:
+            conn, addr = server_socket.accept()
+            print(f"✅ Dashboard connected from {addr}")
+            buffer = []
+
+            with conn:
+                while True:
+                    try:
+                        line = ser.readline().decode('utf-8').strip()
+                        if line and line.isdigit():
+                            val = int(line)
+                            # Normalize 10-bit analog (0-1023) to microvolts range roughly
+                            val = (val - 512) * 0.5
+                            buffer.append(val)
+
+                            if len(buffer) >= chunk_size:
+                                filtered = bandpass_filter(buffer[:chunk_size], fs=SAMPLE_RATE)
+
+                                # Duplicate single channel across CHANNELS to match model expectation
+                                epoch = [filtered.tolist()] * CHANNELS
+
+                                packet = {
+                                    "attention": 0.0,
+                                    "meditation": 0.0,
+                                    "_raw_epoch": epoch,
+                                    "_sfreq": float(SAMPLE_RATE),
+                                    "_n_channels": CHANNELS
+                                }
+
+                                conn.sendall(json.dumps(packet).encode('utf-8') + b'\n')
+                                buffer = buffer[chunk_size // 2:]  # 50% overlap
+
+                    except KeyboardInterrupt:
+                        print("\n🛑 Stopping AD8232 Bridge...")
+                        ser.close()
+                        return
+                    except (ConnectionResetError, BrokenPipeError):
+                        print("\n❌ Dashboard disconnected.")
+                        break
+                    except Exception as e:
+                        print(f"⚠ Signal glitch: {e}")
+                        break
 
 if __name__ == "__main__":
     main()
