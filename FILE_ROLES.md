@@ -36,6 +36,7 @@ This document provides a clear, comprehensive reference mapping each script and 
 - [evaluate.py](file:///c:/Users/Naveenraj/OneDrive/Pictures/Desktop/Documents/Mind_Wave_AImodel/evaluate.py): Model evaluation interface. Computes detailed classification reports, saves confusion matrices, confidence distributions, and performs permutation feature importance checks.
 - [diagnose.py](file:///c:/Users/Naveenraj/OneDrive/Pictures/Desktop/Documents/Mind_Wave_AImodel/diagnose.py): Event-aligned offline pipeline tester. Validates models on raw PhysioNet records and reports system dependencies, GPU/CUDA availability, and hardware status.
 - [logger_orbit.py](file:///c:/Users/Naveenraj/OneDrive/Pictures/Desktop/Documents/Mind_Wave_AImodel/logger_orbit.py): The centralized real-time logging utility. Automatically records timestamps, predicted commands, confidence, and signal quality metrics to daily CSV files.
+- [session_logger.py](file:///c:/Users/Naveenraj/OneDrive/Pictures/Desktop/Documents/Mind_Wave_AImodel/session_logger.py): High-frequency session logger. Records telemetry (timestamp, command, confidence, signal quality, fatigue, attention, meditation, theta/beta ratio) every 100ms and auto-prints a detailed session summary on exit.
 - [auto_report.py](file:///c:/Users/Naveenraj/OneDrive/Pictures/Desktop/Documents/Mind_Wave_AImodel/auto_report.py): Auto-generates post-session reports (text and PDF formats) summarizing command distribution histograms, safety events, and average signal performance.
 
 ---
