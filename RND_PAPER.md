@@ -7,6 +7,8 @@
 **Date:** June 2026  
 **Status:** Active Development
 
+![ORBIT AI Concept Art](C:/Users/Naveenraj/.gemini/antigravity-ide/brain/86130c33-a16f-4db1-b2a7-a1012eaac1de/bci_system_overview_1780498586091.png)
+
 ---
 
 ## Abstract
@@ -29,6 +31,37 @@ This project addresses two key gaps in the existing BCI wheelchair literature:
 
 ORBIT AI employs a **three-tier architecture**:
 
+```mermaid
+flowchart TD
+    subgraph Acquisition["Tier 1: Signal Acquisition"]
+        EEG["EEG Signals (Brain)"]
+        EMG["EMG Signals (Muscle)"]
+        HW["BioAmp EXG Pill / PhysioNet"]
+        EEG --> HW
+        EMG --> HW
+    end
+
+    subgraph Processing["Tier 2: Feature Extraction & Classification"]
+        Cov["Covariances (LWF Estimator)"]
+        TS["Tangent Space Projection"]
+        Class["Classifier (LDA/SVM/MDM)"]
+        HW --> Cov
+        Cov --> TS
+        TS --> Class
+    end
+
+    subgraph Control["Tier 3: Safety & Control"]
+        Gate["5-Layer Safety Gate (Warm-up, Fatigue, EMG Stop)"]
+        UI["Rich TUI Dashboard"]
+        Wheelchair["Wheelchair Action"]
+        Class --> Gate
+        Gate --> UI
+        Gate --> Wheelchair
+    end
+    
+    style Gate fill:#4caf50,stroke:#333,stroke-width:2px,color:#fff
+```
+
 | Tier | Component | Technology |
 |------|-----------|------------|
 | **Signal Acquisition** | BioAmp EXG Pill + Arduino/ESP32 OR PhysioNet EDF Simulation | Serial @ 115200 baud |
@@ -36,6 +69,29 @@ ORBIT AI employs a **three-tier architecture**:
 | **Safety & Control** | 5-Layer Gate System (Signal Quality, Warm-up, Fatigue, EMG Stop, Voting) | Python `Rich` TUI |
 
 ### 2.1 Hybrid Command Mapping
+
+```mermaid
+flowchart LR
+    subgraph Mental Tasks ["Mental Tasks (EEG)"]
+        M1(Imagine Moving Both Feet) -->|Cz Beta Power ↑| C1[FORWARD]
+        M2(Imagine Left Hand) -->|C4 Alpha/Beta shift| C2[LEFT]
+        M3(Imagine Right Hand) -->|C3 Alpha/Beta shift| C3[RIGHT]
+        M4(Relaxed, Eyes Open) -->|Alpha Dominance| C4[IDLE]
+    end
+    
+    subgraph Physical Tasks ["Physical Tasks (EMG)"]
+        P1(Jaw Clench / Bite) -->|EMG Spike >100μV| C5[EMERGENCY STOP]
+    end
+    
+    C1 --> Wheelchair((Wheelchair Motor))
+    C2 --> Wheelchair
+    C3 --> Wheelchair
+    C4 --> Wheelchair
+    C5 -.->|Immediate Override / Halt| Wheelchair
+    
+    style C5 fill:#ff4d4d,stroke:#333,stroke-width:2px,color:#fff
+    style Wheelchair fill:#2196f3,stroke:#333,stroke-width:2px,color:#fff
+```
 
 | Command | Signal Modality | Mental/Physical Task | Neural Bio-Marker |
 |---------|----------------|---------------------|-------------------|
