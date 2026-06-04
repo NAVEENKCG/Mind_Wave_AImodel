@@ -1,6 +1,12 @@
 # 🧠 ORBIT AI — Research & Development Paper
 ### A Hybrid Brain-Computer Interface for Accessible Wheelchair Control
 
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Status](https://img.shields.io/badge/Status-Active%20Development-brightgreen)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey)
+![BCI](https://img.shields.io/badge/Domain-Brain--Computer%20Interface-blueviolet)
+
 **Project:** ORBIT AI (Universal BCI System v2.0)  
 **Classification:** Applied Research / Assistive Technology  
 **Domain:** Neurotechnology · Machine Learning · Human-Computer Interaction  
@@ -11,9 +17,53 @@
 
 ---
 
+## Glossary of Terms
+
+| Abbreviation | Full Form | Brief Description |
+|---|---|---|
+| **BCI** | Brain-Computer Interface | A system that translates brain signals into device commands |
+| **EEG** | Electroencephalography | Non-invasive recording of electrical activity on the scalp |
+| **EMG** | Electromyography | Recording of electrical activity produced by skeletal muscles |
+| **ERD/ERS** | Event-Related Desynchronization / Synchronization | Power decrease/increase in specific frequency bands during mental tasks |
+| **SPD** | Symmetric Positive Definite (matrix) | A class of matrices with special geometric properties used in Riemannian BCI |
+| **MDM** | Minimum Distance to Mean | A Riemannian classifier that assigns class by geodesic distance to class means |
+| **TS** | Tangent Space | Euclidean projection of SPD matrices from the Riemannian manifold |
+| **LDA** | Linear Discriminant Analysis | A linear classifier that maximizes class separability |
+| **SVM** | Support Vector Machine | A kernel-based classifier that finds optimal decision boundaries |
+| **LWF** | Ledoit-Wolf (shrinkage estimator) | A regularized covariance matrix estimator for high-dimensional data |
+| **CSP** | Common Spatial Patterns | A spatial filter that maximizes variance ratio between two classes |
+| **PSD** | Power Spectral Density | Distribution of signal power across frequency components |
+| **FIR** | Finite Impulse Response (filter) | A digital filter with a finite-duration impulse response |
+| **CNN** | Convolutional Neural Network | A deep learning architecture using learnable convolutional filters |
+| **LSTM** | Long Short-Term Memory | A recurrent neural network architecture for sequential data |
+| **ADC** | Analog-to-Digital Converter | Hardware component converting analog signals to digital values |
+| **TUI** | Terminal User Interface | A text-based graphical interface rendered in a terminal |
+
+---
+
 ## Abstract
 
 ORBIT AI is an open-source, hybrid Brain-Computer Interface (BCI) system designed to restore mobility to individuals with severe motor impairments. The system fuses electroencephalography (EEG)-based mental command decoding with electromyography (EMG)-based emergency stop detection to provide safe, real-time wheelchair control. By leveraging state-of-the-art Riemannian geometry classifiers trained on large-scale clinical EEG datasets, ORBIT AI achieves 87%+ classification accuracy for motor imagery commands (IDLE vs. FORWARD) without requiring custom hardware calibration beyond a 45-second profiling session.
+
+---
+
+## 📑 Table of Contents
+
+- [1. Problem Statement](#1-problem-statement)
+- [2. System Overview](#2-system-overview)
+  - [2.1 Hybrid Command Mapping](#21-hybrid-command-mapping)
+- [3. Datasets Used](#3-datasets-used)
+- [4. Core Libraries & Frameworks](#4-core-libraries--frameworks)
+- [5. Foundational Scientific Papers](#5-foundational-scientific-papers)
+- [6. Hardware & Sensor References](#6-hardware--sensor-references)
+- [7. EEG Frequency Band Reference](#7-eeg-frequency-band-reference)
+- [8. Key Algorithms](#8-key-algorithms)
+- [9. Online Resources & Platforms](#9-online-resources--platforms)
+- [10. Software Dependencies](#10-software-dependencies)
+- [11. Results Summary](#11-results-summary)
+- [12. Ethical Considerations & Future Work](#12-ethical-considerations--future-work)
+- [13. Acknowledgements](#13-acknowledgements)
+- [References (Consolidated)](#references-consolidated)
 
 ---
 
@@ -400,6 +450,48 @@ Traditional EEG features (power spectral density, common spatial patterns) are s
 
 ## 6. Hardware & Sensor References
 
+### 6.0 Hardware Connection Diagram
+
+The following diagram shows the complete physical signal path from the user's scalp to the host PC:
+
+```mermaid
+flowchart LR
+    subgraph User["👤 User"]
+        Scalp["Scalp Electrodes (Ag/AgCl)"]
+        Jaw["Jaw EMG Electrodes"]
+    end
+
+    subgraph AFE["Analog Front-End"]
+        BioAmp["BioAmp EXG Pill\n(Gain: ~1000×)"]
+        AD8232["AD8232\n(Budget Alternative)"]
+    end
+
+    subgraph MCU["Microcontroller"]
+        ESP32["ESP32 / Arduino\nADC → Serial"]
+    end
+
+    subgraph Host["🖥️ Host PC"]
+        Bridge["bridge_bioamp.py\n(Serial @ 115200 baud)"]
+        Pipeline["ORBIT AI Pipeline\n(MNE → PyRiemann → Classifier)"]
+        TUI["Rich TUI Dashboard"]
+    end
+
+    Scalp -->|EEG| BioAmp
+    Jaw -->|EMG| BioAmp
+    Scalp -.->|Alt.| AD8232
+    BioAmp --> ESP32
+    AD8232 -.-> ESP32
+    ESP32 -->|USB Serial| Bridge
+    Bridge --> Pipeline
+    Pipeline --> TUI
+
+    style BioAmp fill:#4caf50,stroke:#333,stroke-width:2px,color:#fff
+    style ESP32 fill:#2196f3,stroke:#333,stroke-width:2px,color:#fff
+    style Pipeline fill:#ff9800,stroke:#333,stroke-width:2px,color:#fff
+```
+
+---
+
 ### 6.1 BioAmp EXG Pill — Analog Front-End
 
 > **[HARDWARE]** Upside Down Labs — BioAmp EXG Pill  
@@ -551,11 +643,16 @@ Full dependency list as specified in `requirements.txt`:
 
 ## 12. Ethical Considerations & Future Work
 
-**Ethical Considerations:**
-- All training data is sourced from publicly released, IRB-approved clinical research datasets.
-- PhysioNet data is distributed under the ODC Public Domain Dedication and Licence (PDDL).
-- OpenNeuro datasets are distributed under Creative Commons CC0 license.
-- No personal health data is collected or stored without user consent.
+> [!IMPORTANT]
+> **Ethical Considerations**
+> - All training data is sourced from publicly released, IRB-approved clinical research datasets.
+> - PhysioNet data is distributed under the ODC Public Domain Dedication and Licence (PDDL).
+> - OpenNeuro datasets are distributed under Creative Commons CC0 license.
+> - No personal health data is collected or stored without user consent.
+
+> [!WARNING]
+> **Safety-Critical Deployment Notice**  
+> ORBIT AI is a research prototype. It has **not** been certified by any medical device regulatory authority (e.g., FDA, CE). Do not use as the sole control mechanism for a powered wheelchair without additional mechanical safety systems (e.g., bump sensors, dead-man switch).
 
 **Future Work:**
 1. Integration of online domain adaptation for continuous personalization without explicit calibration.
