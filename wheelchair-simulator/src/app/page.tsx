@@ -137,7 +137,7 @@ export default function Home() {
             </div>
             <span
               className="font-black text-base tracking-tight"
-              style={{ fontFamily: "Syne, sans-serif", letterSpacing: "-0.03em" }}
+              style={{ fontFamily: "var(--font-display)", letterSpacing: "-0.03em" }}
             >
               ORBIT <span style={{ color: "var(--accent)" }}>AI</span>
             </span>
@@ -181,7 +181,7 @@ export default function Home() {
             variants={fadeInUp}
             className="text-5xl md:text-6xl font-black leading-none"
             style={{
-              fontFamily: "Syne, sans-serif",
+              fontFamily: "var(--font-display)",
               letterSpacing: "-0.04em",
               background: "linear-gradient(135deg, #fff 30%, rgba(56,189,248,0.8) 100%)",
               WebkitBackgroundClip: "text",

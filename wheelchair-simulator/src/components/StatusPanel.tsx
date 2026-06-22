@@ -120,7 +120,7 @@ export default function StatusPanel({
         <span
           className="text-2xl font-extrabold tracking-tight"
           style={{
-            fontFamily: "Syne, sans-serif",
+            fontFamily: "var(--font-display)",
             color: cmdColor,
             letterSpacing: "-0.04em",
           }}
