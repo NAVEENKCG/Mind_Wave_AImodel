@@ -10,3 +10,4 @@ tqdm>=4.68.1
 rich>=15.0.0
 mne>=1.12.1
 openneuro-py>=2026.4.1
+websockets>=12.0

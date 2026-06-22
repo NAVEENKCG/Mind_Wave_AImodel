@@ -22,3 +22,11 @@ Thumbs.db
 C-/
 Mind_Wave_AImodel/
 data/*.edf
+
+# Next.js / Node
+wheelchair-simulator/node_modules/
+wheelchair-simulator/.next/
+wheelchair-simulator/out/
+wheelchair-simulator/.turbo/
+wheelchair-simulator/dist/
+wheelchair-simulator/.env*.local
