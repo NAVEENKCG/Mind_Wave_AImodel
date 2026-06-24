@@ -1,11 +1,10 @@
 # 🧠 ORBIT AI — Universal BCI System (v2.0)
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.0-red?logo=pytorch&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green)
-![Status](https://img.shields.io/badge/Status-Active%20Development-brightgreen)
-![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey)
-![BCI](https://img.shields.io/badge/Domain-Brain--Computer%20Interface-blueviolet)
+![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.0-red?logo=pytorch)
+![MOABB](https://img.shields.io/badge/MOABB-1.1-green)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
 **ORBIT AI** is a state-of-the-art, open-source **Brain-Computer Interface** designed for medical wheelchair control. It uses a **Hybrid BCI-EMG** architecture that fuses clinical-grade neural decoding (EEG) with high-speed muscle signal detection (EMG) for maximum safety and reliability.
 
@@ -24,6 +23,38 @@ We use a **"Safety-First"** dual-modality strategy — mental tasks for directio
 | **RIGHT** | 🧠 EEG | Imagine squeezing right hand | C3 Alpha/Beta shift |
 | **IDLE** | 🧠 EEG | Relaxed state, eyes open | Alpha power dominance |
 | **STOP** | 💪 EMG | **Jaw clench (bite teeth)** | High-frequency spike >100μV |
+
+---
+
+## 📋 Prerequisites
+
+Python 3.10+
+```bash
+pip install -r requirements.txt
+```
+
+For hardware mode:
+* BioAmp EXG Pill connected via USB
+* Update `SERIAL_PORT` in `config.py`
+
+---
+
+## ⚡ Quick Start (Demo in 2 commands)
+
+Terminal 1:
+```bash
+python simulate_tgam.py
+```
+
+Terminal 2:
+```bash
+python predict_realtime.py --demo
+```
+
+OR one command:
+```bash
+python demo_mode.py
+```
 
 ---
 
@@ -76,26 +107,33 @@ flowchart TD
 
 ## 🚀 Getting Started
 
-### 1. Clone & Install
+### Step 1: Install (pip install -r requirements.txt)
 ```powershell
 git clone https://github.com/NAVEENKCG/Mind_Wave_AImodel.git
 cd Mind_Wave_AImodel
 pip install -r requirements.txt
 ```
 
-### 2. Train the "Universal Brain"
+### Step 2: Quick Demo (python demo_mode.py)
+Run the automated live demo with a single command to see the BCI dashboard in action:
+```powershell
+python demo_mode.py
+```
+
+### Step 3: Train your own model (python train_moabb.py)
 Uses MOABB to learn from 100+ clinical EEG subjects (PhysioNet + BNCI datasets). Automatically searches for the best engine (MDM vs LDA vs SVM).
 ```powershell
 python train_moabb.py
 ```
 
-### 3. Personal Calibration
+### Step 4: Personal Calibration (python calibrate.py)
 Every brain is unique. Run this 45-second session to map your personal bio-thresholds (α baseline, θ ratio, β reactivity).
 ```powershell
 python calibrate.py
 ```
 
-### 4. Launch the Real-Time Dashboard
+### Step 5: Real Hardware (bridge_bioamp.py)
+Connect real or simulated hardware to the live dashboard.
 
 **Simulation mode** (for testing — uses real clinical EEG patterns):
 ```powershell
@@ -144,6 +182,7 @@ The `predict_realtime.py` engine implements sequential security checks before an
 
 ## 📊 Results
 
+### Current System Results
 | Metric | Value | Condition |
 |--------|-------|-----------|
 | **Validation Accuracy** | 87%+ | IDLE vs. FORWARD, PhysioNet 5-subject subset |
@@ -151,6 +190,35 @@ The `predict_realtime.py` engine implements sequential security checks before an
 | **Inference Latency** | < 100ms | Socket → prediction → display |
 | **EMG Stop Latency** | < 100ms | Jaw-clench → STOP command |
 | **Calibration Time** | 45 seconds | Personal profiling session |
+
+### Overall Project Benchmarks
+| Metric | Value |
+|--------|-------|
+| Model | MOABB CSP+LDA |
+| Cross-validation Accuracy | ~85% (PhysioNet Motor Imagery) |
+| Inference Latency | < 1 second |
+| Training Subjects | 9+ clinical EEG subjects |
+| Emergency Stop Response | < 100ms (jaw clench EMG) |
+| Prototype Cost | ~₹5,000 |
+
+---
+
+## 📁 File Structure
+
+orbit-ai/
+├── predict_realtime.py   ← Main dashboard
+├── simulate_tgam.py      ← EEG stream simulator
+├── train_moabb.py        ← Universal brain training
+├── calibrate.py          ← Personal calibration
+├── diagnose.py           ← System health check
+├── bridge_bioamp.py      ← Real hardware bridge
+├── bridge_ad8232.py      ← AD8232 EMG bridge
+├── logger_orbit.py       ← Session logging
+├── config.py             ← All settings
+├── model.py              ← CNN-LSTM architecture
+└── models/
+    ├── moabb_csp_lda.pkl ← Trained MOABB model
+    └── personal_profile.json ← Your calibration
 
 ---
 
@@ -201,6 +269,23 @@ Mind_Wave_AImodel/
 ├── models/                         # Saved models (.pkl, .pth, .json)
 └── notebooks/                      # Jupyter notebooks
 ```
+
+---
+
+## ⚠️ Troubleshooting
+
+Problem: ImportError: No module named logger_orbit
+Fix: The file exists in repo. Run: pip install -r requirements.txt
+
+Problem: Connection refused on port 9999
+Fix: Start simulate_tgam.py FIRST in a separate terminal
+
+Problem: All predictions show IDLE
+Fix: Run calibrate.py to set personal thresholds
+
+Problem: Poor signal quality
+Fix: Ensure BioAmp EXG Pill electrodes are firmly placed
+     Wipe skin with alcohol wipe before placing electrodes
 
 ---
 
