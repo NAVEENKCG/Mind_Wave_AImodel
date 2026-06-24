@@ -62,8 +62,13 @@ class WheelchairArena:
         return "\n".join("".join(row) for row in grid)
 
 
+DEMO_THRESHOLD = 0.45
+DEMO_WARMUP = 0
+
+
 class RealtimePredictor:
-    def __init__(self):
+    def __init__(self, demo_mode=False):
+        self.demo_mode = demo_mode
         self.console = Console()
         self.arena   = WheelchairArena()
         self.sock_buffer = ""
@@ -123,6 +128,17 @@ class RealtimePredictor:
         self.session_start = time.time()
         self.session_age = 0
         self.signal_msg = "AWAITING SIGNAL"
+
+        # ── Demo Mode Banner ──────────────────────────────────────
+        if self.demo_mode:
+            self.console.print()
+            self.console.print("[bold yellow on black]" + "=" * 42 + "[/]")
+            self.console.print("[bold yellow on black]  ORBIT AI  --  DEMO MODE ACTIVE           [/]")
+            self.console.print("[bold yellow on black]  Warmup: DISABLED                         [/]")
+            self.console.print("[bold yellow on black]  Threshold: 0.45 (relaxed)                [/]")
+            self.console.print("[bold yellow on black]  Press Ctrl+C to exit                     [/]")
+            self.console.print("[bold yellow on black]" + "=" * 42 + "[/]")
+            self.console.print()
 
         # Start session logging
         orbit_logger.log_session_start()
@@ -302,6 +318,20 @@ class RealtimePredictor:
         info.add_row("[bold]FWD/IDLE:[/bold]",   f"[cyan]{self.total_fwd}/{self.total_idle}[/cyan]")
         info.add_row("[bold]ENGINE:[/bold]",     f"[magenta]{self.engine_name}[/magenta]")
 
+        # ── Demo mode: session timer + keyboard shortcuts ─────────
+        if self.demo_mode:
+            demo_elapsed = int(time.time() - self.session_start)
+            dm, ds = divmod(demo_elapsed, 60)
+            dh, dm = divmod(dm, 60)
+            timer_str = f"{dh:02d}:{dm:02d}:{ds:02d}"
+            info.add_row("")
+            info.add_row("[bold yellow]DEMO:[/bold yellow]", f"[yellow]Running: {timer_str}[/yellow]")
+            info.add_row("")
+            info.add_row("[bold]DEMO CONTROLS:[/bold]")
+            info.add_row("  [dim]\\[0][/dim]", "Stream IDLE signal")
+            info.add_row("  [dim]\\[1][/dim]", "Stream FORWARD signal")
+            info.add_row("  [dim italic](via simulate_tgam.py)[/dim italic]")
+
         layout["sidebar"].update(Panel(info, title="System Info", border_style="dim"))
         
         # ── Brainwave Power Bars ─────────────────────────────────────
@@ -330,8 +360,12 @@ class RealtimePredictor:
         except:
             layout["sidebar"].update(Panel(info, title="System Info", border_style="dim"))
         
-        arena_color = "red" if self.fatigue_state == "CRITICAL" else "yellow" if self.session_age < 5 else "green"
-        arena_title = "Virtual Arena" if self.session_age >= 5 else f"Warmup Phase ({int(self.session_age)}/5s)"
+        warmup_gate = DEMO_WARMUP if self.demo_mode else 5
+        arena_color = "red" if self.fatigue_state == "CRITICAL" else "yellow" if self.session_age < warmup_gate else "green"
+        if self.demo_mode:
+            arena_title = "Virtual Arena [DEMO]"
+        else:
+            arena_title = "Virtual Arena" if self.session_age >= warmup_gate else f"Warmup Phase ({int(self.session_age)}/{warmup_gate}s)"
         layout["arena"].update(Panel(self.arena.render(), title=arena_title, border_style=arena_color))
         return layout
 
@@ -385,7 +419,8 @@ class RealtimePredictor:
                         continue
 
                     # 3. Warmup Phase Override
-                    if self.session_age < 5:
+                    warmup_gate = DEMO_WARMUP if self.demo_mode else 5
+                    if self.session_age < warmup_gate:
                         self.last_command = "CALIBRATING"
                         self.signal_msg = "[yellow]WARMUP[/yellow]"
                         live.update(self.build_layout())
@@ -405,7 +440,10 @@ class RealtimePredictor:
                         score_fwd = sum([p[0] * w for p, w in zip(self.recent_preds, weights)])
                         
                         # Use 0.50 threshold to match the binary classifier validated in diagnose.py
-                        threshold = self.profile.get("moabb_confidence_threshold", 0.50) if self.profile else 0.50
+                        if self.demo_mode:
+                            threshold = DEMO_THRESHOLD
+                        else:
+                            threshold = self.profile.get("moabb_confidence_threshold", 0.50) if self.profile else 0.50
 
                         if score_fwd > threshold:
                             self.last_command = "FORWARD"
@@ -434,4 +472,4 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ORBIT AI — BCI Dashboard")
     parser.add_argument("--demo", action="store_true")
     args = parser.parse_args()
-    RealtimePredictor().run()
+    RealtimePredictor(demo_mode=args.demo).run()
