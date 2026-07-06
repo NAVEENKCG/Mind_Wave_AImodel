@@ -56,6 +56,7 @@ ORBIT AI is an open-source, hybrid Brain-Computer Interface (BCI) system designe
 - [3. Datasets Used](#3-datasets-used)
 - [4. Core Libraries & Frameworks](#4-core-libraries--frameworks)
 - [5. Foundational Scientific Papers](#5-foundational-scientific-papers)
+  - [5.0 Primary Base Papers & Journal Benchmarks](#50-primary-base-papers--journal-benchmarks)
 - [6. Hardware & Sensor References](#6-hardware--sensor-references)
 - [7. EEG Frequency Band Reference](#7-eeg-frequency-band-reference)
 - [8. Key Algorithms](#8-key-algorithms)
@@ -337,6 +338,21 @@ Traditional EEG features (power spectral density, common spatial patterns) are s
 ---
 
 ## 5. Foundational Scientific Papers
+
+### 5.0 Primary Base Papers & Journal Benchmarks
+
+For academic reporting, literature reviews, and project benchmarking, the following **four published journal articles** serve as the primary **Base Papers** for ORBIT AI. Each paper defines a core pillar of the project's architecture:
+
+| Pillar | Base Paper Title & Authors | Journal & DOI | Direct Architectural Mapping in ORBIT AI |
+| :--- | :--- | :--- | :--- |
+| **1. Application & Robotics** | *A Brain-Actuated Wheelchair: Asynchronous and Non-Invasive BCI for Continuous Control of Robots*<br>**(Galán et al., 2008)** | *Clinical Neurophysiology*<br>🔗 <https://doi.org/10.1016/j.clinph.2008.06.001> | Foundation for asynchronous motor imagery wheelchair navigation in [predict_realtime.py](file:///c:/Users/Naveenraj/OneDrive/Pictures/Desktop/Documents/Mind_Wave_AImodel/predict_realtime.py) and [predict_websocket.py](file:///c:/Users/Naveenraj/OneDrive/Pictures/Desktop/Documents/Mind_Wave_AImodel/predict_websocket.py). |
+| **2. Clinical & Safety Gate** | *Transferring BCI Beyond the Laboratory: Successful Application Control for Motor-Disabled Users*<br>**(Leeb et al., 2013)** | *Artificial Intelligence in Medicine*<br>🔗 <https://doi.org/10.1016/j.artmed.2013.08.004> | Foundation for cognitive fatigue monitoring (Theta/Beta ratio tracking) and the 2-minute warmup safety gate. |
+| **3. Mathematical & ML Pipeline** | *Transfer Learning: A Riemannian Geometry Framework With Applications to BCI*<br>**(Zanini et al., 2018)** | *IEEE Trans. on Biomedical Engineering*<br>🔗 <https://doi.org/10.1109/TBME.2017.2742541> | Mathematical proof for cross-subject covariance alignment and 45-second calibration profiling in [calibrate.py](file:///c:/Users/Naveenraj/OneDrive/Pictures/Desktop/Documents/Mind_Wave_AImodel/calibrate.py). |
+| **4. Deep Learning Architecture** | *EEGNet: A Compact Convolutional Neural Network for EEG-based BCI*<br>**(Lawhern et al., 2018)** | *Journal of Neural Engineering*<br>🔗 <https://doi.org/10.1088/1741-2552/aace8c> | Direct inspiration for the compact 1D Convolutional + BiLSTM hybrid architecture in [model.py](file:///c:/Users/Naveenraj/OneDrive/Pictures/Desktop/Documents/Mind_Wave_AImodel/model.py). |
+
+> **💡 Recommendation for Academic Submissions:** If a single **Base Paper** is required for college or research documentation, reference **Galán et al. (2008)** as the primary application benchmark and **Zanini et al. (2018)** as the primary algorithmic benchmark.
+
+---
 
 ### 5.1 Motor Imagery BCI — Core Theory
 
