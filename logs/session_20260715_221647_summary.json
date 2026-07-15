@@ -1,0 +1,14 @@
+{
+  "session_id": "20260715_221647",
+  "total_events": 0,
+  "duration_seconds": 106.6,
+  "command_counts": {
+    "IDLE": 0,
+    "FORWARD": 0,
+    "LEFT": 0,
+    "RIGHT": 0,
+    "PUSH": 0,
+    "PULL": 0
+  },
+  "average_confidence": 0.0
+}

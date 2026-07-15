@@ -121,31 +121,57 @@ class EEGStreamSimulator:
             n_samples = data.shape[1]
             chunk_size = int(self.sfreq * 1.0)
 
-            print(f"🧪 {self.n_channels} channels × {n_samples/self.sfreq:.1f}s @ {self.sfreq:.0f}Hz")
-            print("   Extracting features...")
+            # Identify motor cortex channels for focused attention feature
+            ch_names = [ch.upper().rstrip('.') for ch in raw.ch_names]
+            motor_targets = ['C3', 'CZ', 'C4', 'FC3', 'FC4', 'CP3', 'CP4']
+            motor_indices = [i for i, name in enumerate(ch_names) 
+                           if any(t in name for t in motor_targets)]
+            
+            if not motor_indices:
+                # Fallback: approximate motor cortex positions in 64-ch 10-20 montage
+                if self.n_channels >= 64:
+                    motor_indices = [7, 9, 11, 5, 13]
+                else:
+                    motor_indices = list(range(self.n_channels))
+            
+            print(f"[SIM] {self.n_channels} channels x {n_samples/self.sfreq:.1f}s @ {self.sfreq:.0f}Hz")
+            print(f"[SIM] Motor cortex channels: {len(motor_indices)} indices -> {[ch_names[i] if i < len(ch_names) else i for i in motor_indices[:5]]}")
+            print("[SIM] Extracting features...")
 
             for start in range(0, n_samples - chunk_size, chunk_size // 2):
                 chunk = data[:, start: start + chunk_size]
 
-                # Band powers (for BioSensor fallback)
+                # Band powers averaged across ALL channels (for general brain power display)
                 band_powers = [
                     np.mean([get_db_power(chunk[c], self.sfreq, f1, f2)
                              for c in range(self.n_channels)])
                     for f1, f2 in BANDS
                 ]
-                attn = np.mean(band_powers[4:6]) - np.mean(band_powers[2:4])
+
+                # Motor-cortex-focused attention: beta-alpha using only motor channels
+                motor_beta_alpha = []
+                for ch_idx in motor_indices:
+                    if ch_idx >= self.n_channels:
+                        continue
+                    beta_pwr = get_db_power(chunk[ch_idx], self.sfreq, 13, 30)
+                    alpha_pwr = get_db_power(chunk[ch_idx], self.sfreq, 8, 13)
+                    motor_beta_alpha.append(beta_pwr - alpha_pwr)
+                
+                attn = np.mean(motor_beta_alpha) if motor_beta_alpha else (
+                    np.mean(band_powers[4:6]) - np.mean(band_powers[2:4])
+                )
                 med  = np.mean(band_powers[2:4]) - band_powers[1]
                 features = band_powers + [attn, med, 0.0]
 
                 self.samples.append({
                     "features"  : features,
-                    "raw_epoch" : chunk.tolist(),   # shape: n_ch × chunk_size
+                    "raw_epoch" : chunk.tolist(),   # shape: n_ch x chunk_size
                     "sfreq"     : float(self.sfreq),
                     "n_channels": int(self.n_channels),
                 })
 
             raw.close()
-            print(f"✅ Extracted {len(self.samples)} samples — ready to stream!")
+            print(f"[SIM] Extracted {len(self.samples)} samples -- ready to stream!")
 
         except Exception as e:
             print(f"❌ Error loading EDF: {e}")
