@@ -1,14 +1,17 @@
 # EEG Data
 data/raw_data.csv
 data/external/
+data/edf_cache/
 data/*.npy
 data/*.csv
+data/*.pkl
+data/*.edf
 
 # Models & Results
 models/*.pth
 models/*.pkl
 results/*.png
-logs/*.csv
+logs/*
 
 # Python
 __pycache__/

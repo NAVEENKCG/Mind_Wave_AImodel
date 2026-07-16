@@ -57,8 +57,12 @@ class RealtimePredictor:
                 with open(MOABB_STATS_PATH, 'rb') as f: self.moabb_stats = pickle.load(f)
                 acc = self.moabb_stats.get('cv_mean', 0) * 100
                 pipe_name = self.moabb_stats.get('pipeline', 'CSP+LDA')
-                self.engine_name = f"{pipe_name} ({acc:.0f}%)"
-                print(f"[MODEL] Loaded MOABB {pipe_name} pipeline (CV accuracy: {acc:.1f}%)")
+                is_calibrated = self.moabb_stats.get('calibrated', False)
+                uses_fbcsp = self.moabb_stats.get('uses_fbcsp', False)
+                cal_tag = " [Platt-calibrated]" if is_calibrated else ""
+                fbcsp_tag = " [FBCSP]" if uses_fbcsp else ""
+                self.engine_name = f"{pipe_name}{cal_tag} ({acc:.0f}%)"
+                print(f"[MODEL] Loaded MOABB {pipe_name} pipeline{cal_tag}{fbcsp_tag} (CV accuracy: {acc:.1f}%)")
                 print(f"[MODEL] Expected input: {self.moabb_stats.get('n_channels')} channels x {self.moabb_stats.get('n_times')} samples")
             except Exception as e:
                 print(f"[WARN] Failed to load MOABB model: {e}")
@@ -71,7 +75,7 @@ class RealtimePredictor:
                 with open(self.profile_path, "r") as f: self.profile = json.load(f)
             except: pass
 
-        self.recent_preds = deque(maxlen=5)  # Increased from 3 for smoother output
+        self.recent_preds = deque(maxlen=3)  # Sharper smoothing: less regression-to-mean
         self.fatigue_history = deque(maxlen=50)
         self.fatigue_state = "NORMAL"
         self.session_start = time.time()
@@ -87,7 +91,7 @@ class RealtimePredictor:
         self.confirmed_command = "IDLE"
         self.consecutive_same = 0
         self.CONFIRM_THRESHOLD = 2    # Need N consistent predictions to switch TO forward
-        self.RELEASE_THRESHOLD = 3    # Need N consistent predictions to switch BACK to idle
+        self.RELEASE_THRESHOLD = 2    # Symmetric: same responsiveness for both transitions
 
         orbit_logger.log_session_start()
 
@@ -146,7 +150,7 @@ class RealtimePredictor:
         except: return None
 
     def build_features(self, raw_dict):
-        keys = ["delta", "theta", "lowAlpha", "highAlpha", "lowBeta", "highBeta", "lowGamma", "highGamma", "attention", "meditation", "blink"]
+        keys = ["delta", "theta", "alpha", "beta", "gamma", "attention", "meditation", "blink"]
         vals = [float(raw_dict.get(k, 0)) for k in keys]
         return vals
 
@@ -248,10 +252,10 @@ class RealtimePredictor:
             if attn_values:
                 attn = np.mean(attn_values)
             else:
-                attn = np.mean([list(self.window)[i][8] for i in range(len(self.window))])
+                attn = np.mean([list(self.window)[i][5] for i in range(len(self.window))])
         else:
             x_raw = np.array([list(self.window)], dtype=np.float32)
-            attn  = np.mean(x_raw[0, :, 8])
+            attn  = np.mean(x_raw[0, :, 5])
 
         dist = attn - self.adaptive_center
         fwd  = 1.0 / (1.0 + np.exp(-dist * 5.0))
@@ -300,11 +304,11 @@ class RealtimePredictor:
                 self.window.append(features)
                 self.session_age = time.time() - self.session_start
 
-                # Update Brain Power data
+                # Update Brain Power data (5-band: 0=delta, 1=theta, 2=alpha, 3=beta, 4=gamma)
                 latest = self.window[-1]
                 theta_pwr = max(0, latest[1] + 150) / 60.0
-                alpha_pwr = max(0, ((latest[2]+latest[3])/2) + 150) / 60.0
-                beta_pwr = max(0, ((latest[4]+latest[5])/2) + 150) / 60.0
+                alpha_pwr = max(0, latest[2] + 150) / 60.0
+                beta_pwr  = max(0, latest[3] + 150) / 60.0
 
                 self.broadcast_data["power"] = {
                     "theta": min(1.0, theta_pwr),
@@ -335,15 +339,15 @@ class RealtimePredictor:
                         continue
 
                     # During warmup: collect baseline attention values for adaptive threshold
-                    if self.session_age < 5:
+                    if self.session_age < 3:
                         self.last_command = "CALIBRATING"
                         self.broadcast_data.update({"command": "IDLE", "signal": "WARMUP"})
-                        attn_val = features[8]
+                        attn_val = features[5]  # attention index in 5-band layout
                         self.baseline_attention_values.append(attn_val)
                         continue
 
                     # Compute adaptive baseline once after warmup completes
-                    if not self.baseline_computed and len(self.baseline_attention_values) > 5:
+                    if not self.baseline_computed and len(self.baseline_attention_values) > 3:
                         self.adaptive_center = float(np.median(self.baseline_attention_values))
                         self.baseline_computed = True
                         print(f"[ADAPT] Baseline attention center: {self.adaptive_center:.3f}")
@@ -361,9 +365,8 @@ class RealtimePredictor:
                     self.recent_preds.append((forward_prob, idle_prob))
 
                     if len(self.recent_preds) == self.recent_preds.maxlen:
-                        # Exponentially-weighted moving average (recent predictions matter more)
-                        n = len(self.recent_preds)
-                        weights = [2 ** i for i in range(n)]
+                        # Sharper exponential weights: latest prediction dominates
+                        weights = [1, 2, 4]  # ~57% latest, ~29% middle, ~14% oldest
                         total_w = sum(weights)
                         score_fwd = sum(p[0] * w for p, w in zip(self.recent_preds, weights)) / total_w
                         threshold = self.profile.get("moabb_confidence_threshold", 0.50) if self.profile else 0.50

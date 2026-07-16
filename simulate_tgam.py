@@ -22,7 +22,7 @@ from scipy.signal import welch
 
 # Standard EEG frequency bands (for legacy attention feature)
 BANDS = [
-    (0.5, 4), (4, 8), (8, 10), (10, 13), (13, 20), (20, 30), (30, 45), (45, 50)
+    (0.5, 4), (4, 8), (8, 13), (13, 30), (30, 50)
 ]
 
 def get_db_power(data_1d, sfreq, fmin, fmax):
@@ -49,8 +49,8 @@ class EEGStreamSimulator:
         self.sfreq      = None
         self.n_channels = None
         self.feature_names = [
-            "delta", "theta", "lowAlpha", "highAlpha", "lowBeta",
-            "highBeta", "lowGamma", "highGamma", "attention", "meditation", "blink"
+            "delta", "theta", "alpha", "beta", "gamma",
+            "attention", "meditation", "blink"
         ]
 
     # ── Setup ────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ class EEGStreamSimulator:
 
         try:
             raw = mne.io.read_raw_edf(edf_path, preload=True, verbose=False)
-            raw.filter(1, 45, verbose=False)
+            raw.filter(0.5, 50, verbose=False)
 
             data = raw.get_data()
             self.sfreq = raw.info['sfreq']
@@ -158,9 +158,9 @@ class EEGStreamSimulator:
                     motor_beta_alpha.append(beta_pwr - alpha_pwr)
                 
                 attn = np.mean(motor_beta_alpha) if motor_beta_alpha else (
-                    np.mean(band_powers[4:6]) - np.mean(band_powers[2:4])
+                    band_powers[3] - band_powers[2]  # beta - alpha
                 )
-                med  = np.mean(band_powers[2:4]) - band_powers[1]
+                med  = band_powers[2] - band_powers[1]  # alpha - theta
                 features = band_powers + [attn, med, 0.0]
 
                 self.samples.append({

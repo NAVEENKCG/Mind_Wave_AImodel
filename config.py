@@ -18,10 +18,10 @@ USE_CNN_LSTM = True  # Flag to switch between architectures
 SEED = 42
 
 # Data Configuration
-TRAIN_WINDOW_SIZE = 10  # 1.0 seconds at 10Hz (snappy response)
-INFER_WINDOW_SIZE = 10  # 1 second for faster response
+TRAIN_WINDOW_SIZE = 8   # 0.8 seconds at 10Hz (snappier response)
+INFER_WINDOW_SIZE = 8   # 0.8 seconds for faster response
 STRIDE = 5              # 50% overlap for 10Hz (approx 0.5s)
-N_FEATURES_RAW = 11
+N_FEATURES_RAW = 8      # 5 bands + attention + meditation + blink
 N_FEATURES_ENGINEERED = 18
 N_CLASSES = 5
 CLASS_NAMES = {
