@@ -17,6 +17,20 @@ import websockets
 from collections import deque
 from pathlib import Path
 from scipy.signal import welch
+import sys
+if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
+try:
+    from train_moabb import FBCSPTransformer, BandpassFilter
+    sys.modules['__main__'].FBCSPTransformer = FBCSPTransformer
+    sys.modules['__main__'].BandpassFilter = BandpassFilter
+except Exception as e:
+    pass
 
 from config import *
 from logger_orbit import logger as orbit_logger

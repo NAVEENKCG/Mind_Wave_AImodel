@@ -11,6 +11,12 @@ import json
 import time
 import re
 import sys
+if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
 import numpy as np
 import urllib.request
 import urllib.error
@@ -62,7 +68,30 @@ class EEGStreamSimulator:
         print("  Supported formats: .edf")
         print("=" * 55)
 
-        source = input("\n🔗 EDF Source (URL or path): ").strip().strip('"')
+        source = ""
+        if len(sys.argv) > 1:
+            for i, arg in enumerate(sys.argv):
+                if arg == "--edf" and i + 1 < len(sys.argv):
+                    source = sys.argv[i + 1]
+                    break
+            if not source and not sys.argv[1].startswith("-"):
+                source = sys.argv[1]
+
+        if not source:
+            try:
+                source = input("\n🔗 EDF Source (URL or path): ").strip().strip('"')
+            except EOFError:
+                pass
+
+        if not source:
+            default_path = Path("data/edf_cache/S001R04.edf")
+            if default_path.exists():
+                source = str(default_path)
+                print(f"🔗 Using default cached EDF: {source}")
+            else:
+                print("❌ No EDF source provided and default not found.")
+                sys.exit(1)
+
         edf_path = self._resolve_source(source)
         self._load_and_extract(edf_path)
 
