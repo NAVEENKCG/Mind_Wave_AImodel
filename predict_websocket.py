@@ -136,9 +136,24 @@ class RealtimePredictor:
             finally:
                 self.connected_clients.remove(websocket)
 
+        def process_request(connection, request):
+            import http
+            upgrade_header = request.headers.get("Upgrade", "").lower()
+            if upgrade_header != "websocket":
+                body = json.dumps({
+                    "status": "online",
+                    "service": "ORBIT AI BCI WebSocket Server",
+                    "websocket_url": "ws://localhost:8765",
+                    "note": "This port is for WebSocket connections. To view the dashboard, open the Next.js app in your browser (e.g. http://localhost:3000)."
+                })
+                return connection.respond(http.HTTPStatus.OK, body)
+            return None
+
         async def main():
             print("[WS] WebSocket Server running on ws://localhost:8765")
-            async with websockets.serve(handler, "localhost", 8765):
+            print("[NOTE] To view the Wheelchair Dashboard, open your web app (http://localhost:3000).")
+            print("[NOTE] Do not open ws://localhost:8765 directly in your browser URL bar.")
+            async with websockets.serve(handler, "localhost", 8765, process_request=process_request):
                 await asyncio.Future()
 
         asyncio.run(main())
