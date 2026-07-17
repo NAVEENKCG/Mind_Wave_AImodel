@@ -1,8 +1,10 @@
 """
-ORBIT AI — BCI WebSocket Server
+ORBIT AI — BCI WebSocket Server (v7.0)
 ==========================================
 Connects to EEG Stream Simulator and broadcasts brainwave states
 over WebSockets for the Next.js Virtual Wheelchair Dashboard.
+
+v7.0: Artifact rejection, confidence-weighted EWMA, adaptive threshold.
 """
 
 import numpy as np
@@ -36,6 +38,7 @@ from config import *
 from logger_orbit import logger as orbit_logger
 
 COMMANDS = {0: "IDLE", 1: "FORWARD"}
+ARTIFACT_THRESHOLD_UV = 100  # ±100µV peak-to-peak artifact rejection
 
 MOABB_MODEL_PATH = MODELS_DIR / "moabb_csp_lda.pkl"
 MOABB_STATS_PATH = DATA_DIR   / "moabb_stats.pkl"
@@ -100,6 +103,8 @@ class RealtimePredictor:
         self.baseline_attention_values = []
         self.baseline_computed = False
         self.adaptive_center = -2.3  # Will be updated during warmup
+        self.warmup_probs = []  # Collect model probabilities during warmup for adaptive threshold
+        self.adaptive_threshold = 0.50  # Will be updated after warmup
 
         # Hysteresis state machine: prevents rapid flickering between FORWARD/IDLE
         self.confirmed_command = "IDLE"
@@ -186,9 +191,16 @@ class RealtimePredictor:
     def is_signal_valid(self, raw_dict):
         raw = raw_dict.get("_raw_epoch")
         if not raw: return False, "NO DATA"
-        flat = np.array(raw).flatten()
+        epoch = np.array(raw)
+        flat = epoch.flatten()
         if np.all(flat == 0.0): return False, "NO CONTACT"
         if np.std(flat) > 300: return False, "NOISY"
+        # Artifact rejection: check peak-to-peak per channel
+        ptp = np.ptp(epoch, axis=1)  # (n_channels,)
+        threshold_v = ARTIFACT_THRESHOLD_UV * 1e-6  # convert µV to V
+        bad_ratio = np.mean(ptp > threshold_v)
+        if bad_ratio > 0.25:
+            return False, "ARTIFACT"
         return True, "GOOD"
 
     def compute_fatigue(self, raw_dict):
@@ -368,11 +380,16 @@ class RealtimePredictor:
                         continue
 
                     # During warmup: collect baseline attention values for adaptive threshold
-                    if self.session_age < 3:
+                    if self.session_age < 5:
                         self.last_command = "CALIBRATING"
                         self.broadcast_data.update({"command": "IDLE", "signal": "WARMUP"})
                         attn_val = features[5]  # attention index in 5-band layout
                         self.baseline_attention_values.append(attn_val)
+                        # Also collect model probabilities during warmup for adaptive threshold
+                        if self.moabb_pipeline is not None:
+                            warmup_result = self.classify_moabb(raw)
+                            if warmup_result is not None:
+                                self.warmup_probs.append(warmup_result[0])  # forward_prob
                         continue
 
                     # Compute adaptive baseline once after warmup completes
@@ -380,6 +397,16 @@ class RealtimePredictor:
                         self.adaptive_center = float(np.median(self.baseline_attention_values))
                         self.baseline_computed = True
                         print(f"[ADAPT] Baseline attention center: {self.adaptive_center:.3f}")
+                        # Set adaptive threshold from warmup probability distribution
+                        if len(self.warmup_probs) > 3:
+                            sorted_probs = sorted(self.warmup_probs)
+                            # Threshold at 75th percentile of resting-state forward probabilities
+                            idx_75 = int(len(sorted_probs) * 0.75)
+                            self.adaptive_threshold = max(0.50, min(0.70, sorted_probs[idx_75]))
+                            print(f"[ADAPT] Adaptive FORWARD threshold: {self.adaptive_threshold:.3f} (from {len(self.warmup_probs)} warmup predictions)")
+                        else:
+                            self.adaptive_threshold = 0.50
+                            print(f"[ADAPT] Using default threshold: {self.adaptive_threshold:.2f}")
 
                     # ── Classification: MOABB first, BioSensor fallback ──
                     result = None
@@ -394,11 +421,17 @@ class RealtimePredictor:
                     self.recent_preds.append((forward_prob, idle_prob))
 
                     if len(self.recent_preds) == self.recent_preds.maxlen:
-                        # Sharper exponential weights: latest prediction dominates
-                        weights = [1, 2, 4]  # ~57% latest, ~29% middle, ~14% oldest
-                        total_w = sum(weights)
-                        score_fwd = sum(p[0] * w for p, w in zip(self.recent_preds, weights)) / total_w
-                        threshold = self.profile.get("moabb_confidence_threshold", 0.50) if self.profile else 0.50
+                        # Confidence-weighted EWMA: weight each prediction by its own confidence
+                        base_weights = [1, 2, 4]  # recency weights
+                        weighted_scores = []
+                        total_w = 0
+                        for (fwd_p, idle_p), bw in zip(self.recent_preds, base_weights):
+                            conf = max(fwd_p, idle_p)  # prediction confidence
+                            w = bw * conf  # confidence-weighted
+                            weighted_scores.append(fwd_p * w)
+                            total_w += w
+                        score_fwd = sum(weighted_scores) / (total_w + 1e-9)
+                        threshold = self.adaptive_threshold
 
                         # Raw decision from the model
                         raw_cmd = "FORWARD" if score_fwd > threshold else "IDLE"

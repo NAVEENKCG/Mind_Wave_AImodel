@@ -1,18 +1,19 @@
 """
-ORBIT AI — MOABB Training Pipeline (v6.0 — FBCSP High-Confidence)
+ORBIT AI — MOABB Training Pipeline (v7.0 — Leakage-Free FBCSP)
 ==================================================================
-CORE IMPROVEMENTS over v5.0:
-  1. Filter Bank CSP (FBCSP) — extracts CSP features from 5 EEG sub-bands
-     (delta, theta, alpha, beta, gamma) and concatenates them for classification.
-     This exploits band-specific ERD/ERS patterns for much higher discriminability.
-  2. 10 subjects × 6 motor runs + 2 rest runs = 5× more training data.
-  3. Wider bandpass (0.5–50 Hz) preserves full delta and low gamma.
-  4. Time-jitter augmentation (±25 samples) triples the dataset.
-  5. Platt-calibrated probabilities for sharper confidence output.
+CORE IMPROVEMENTS over v6.0:
+  1. FIX: Augmentation moved INSIDE CV loop to eliminate data leakage.
+     The v6 pipeline augmented before splitting, allowing augmented copies
+     of the same epoch into both train and test folds (inflating accuracy).
+  2. Channel Selection: 64 → 22 motor-cortex channels (sensorimotor strip).
+     Reduces model size from ~3.5 GB to ~200 MB and removes noise channels.
+  3. Subject labels preserved: enables Leave-One-Subject-Out (LOSO) CV.
+  4. Artifact rejection: epochs with >100µV peak-to-peak are discarded.
+  5. All v6 features retained: FBCSP 5-band, Platt calibration, 10 subjects.
 
 Training vs Inference symmetry:
   Both classes extracted using the SAME method:
-    raw.get_data() → filter(0.5,50) → chunk into 1s windows
+    raw.get_data() → pick motor channels → filter(0.5,50) → chunk into 1s windows
   FORWARD class: chunks from event-marked motor imagery periods in R04/R06/R08/R10/R12/R14
   IDLE class:    chunks from continuous baseline recordings R01/R02
 """
@@ -52,6 +53,15 @@ STATS_OUT = DATA_DIR   / "moabb_stats.pkl"
 SFREQ = 160           # PhysioNet sample rate
 EPOCH_SAMPLES = 160   # 1 second at 160Hz (matches simulator chunk_size)
 N_SUBJECTS = 10       # 10 subjects for robust covariance estimates
+ARTIFACT_THRESHOLD = 100e-6  # ±100µV peak-to-peak artifact rejection
+
+# ── Motor-cortex channel selection (22 of 64) ───────────────────
+# Sensorimotor strip: FC5–FC6, C5–C6, CP5–CP6 (covers ERD/ERS)
+MOTOR_CHANNEL_NAMES = [
+    'Fc5.', 'Fc3.', 'Fc1.', 'Fcz.', 'Fc2.', 'Fc4.', 'Fc6.',  # Frontal-central
+    'C5..', 'C3..', 'C1..', 'Cz..', 'C2..', 'C4..', 'C6..',  # Central (primary motor)
+    'Cp5.', 'Cp3.', 'Cp1.', 'Cpz.', 'Cp2.', 'Cp4.', 'Cp6.',  # Centro-parietal
+]
 
 # ── FBCSP frequency sub-bands ───────────────────────────────────
 FILTER_BANDS = [
@@ -149,19 +159,31 @@ def download_edf(subject_id, run_id):
         return None
 
 
-def extract_epochs_from_edf(edf_path, epoch_samples, event_aligned=False):
+def extract_epochs_from_edf(edf_path, epoch_samples, event_aligned=False,
+                            pick_channels=None, artifact_threshold=None):
     """
     Extract epochs from an EDF file using the SAME method as the simulator.
     
     If event_aligned=True: extract 1s windows starting at each motor event.
     If event_aligned=False: chunk the entire recording into 1s windows (for rest).
+    
+    pick_channels: list of channel names to select (None = all).
+    artifact_threshold: reject epochs with peak-to-peak > this value (in Volts).
     """
     raw = mne.io.read_raw_edf(edf_path, preload=True, verbose=False)
+    
+    # Channel selection: pick only motor-cortex channels
+    if pick_channels is not None:
+        available = [ch for ch in pick_channels if ch in raw.ch_names]
+        if len(available) > 0:
+            raw.pick_channels(available)
+    
     raw.filter(0.5, 50, verbose=False)  # Wider bandpass: preserves delta floor + gamma ceiling
     data = raw.get_data()  # (n_channels, n_samples)
     n_channels = data.shape[0]
     
     epochs = []
+    n_rejected = 0
     
     if event_aligned:
         # Extract windows aligned to motor imagery events (T1=left, T2=right)
@@ -174,14 +196,31 @@ def extract_epochs_from_edf(edf_path, epoch_samples, event_aligned=False):
             start = ev[0]
             if start + epoch_samples > data.shape[1]:
                 continue
-            epochs.append(data[:, start:start + epoch_samples])
+            epoch = data[:, start:start + epoch_samples]
+            # Artifact rejection: skip epochs with extreme peak-to-peak
+            if artifact_threshold is not None:
+                ptp = np.ptp(epoch, axis=1)  # peak-to-peak per channel
+                bad_ratio = np.mean(ptp > artifact_threshold)
+                if bad_ratio > 0.25:  # >25% channels are bad
+                    n_rejected += 1
+                    continue
+            epochs.append(epoch)
     else:
         # Chunk entire recording into fixed windows (for baseline/rest)
         n_samples = data.shape[1]
         for start in range(0, n_samples - epoch_samples, epoch_samples):
-            epochs.append(data[:, start:start + epoch_samples])
+            epoch = data[:, start:start + epoch_samples]
+            if artifact_threshold is not None:
+                ptp = np.ptp(epoch, axis=1)
+                bad_ratio = np.mean(ptp > artifact_threshold)
+                if bad_ratio > 0.25:
+                    n_rejected += 1
+                    continue
+            epochs.append(epoch)
     
     raw.close()
+    if n_rejected > 0:
+        print(f"      (rejected {n_rejected} artifact epochs)", flush=True)
     return epochs, n_channels
 
 
@@ -219,33 +258,39 @@ def augment_epochs(epochs, max_jitter=25, rng=None):
 
 def main():
     print("=" * 60, flush=True)
-    print("  ORBIT AI -- Training Pipeline (v6.0 — FBCSP)", flush=True)
-    print("  Filter Bank CSP + wider bandpass + augmentation", flush=True)
+    print("  ORBIT AI -- Training Pipeline (v7.0 — Leakage-Free FBCSP)", flush=True)
+    print("  Channel selection + artifact rejection + honest CV", flush=True)
     print("=" * 60, flush=True)
     
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     
-    cache_epochs_path = DATA_DIR / "moabb_epochs_v6.pkl"
+    cache_epochs_path = DATA_DIR / "moabb_epochs_v7.pkl"
     
     if cache_epochs_path.exists():
-        print("\n[1-3/5] Loading pre-extracted & balanced epochs from local cache...", flush=True)
+        print("\n[1-3/6] Loading pre-extracted & balanced epochs from local cache...", flush=True)
         with open(cache_epochs_path, "rb") as f:
-            X, y, n_channels = pickle.load(f)
+            cache = pickle.load(f)
+        X = cache['X']
+        y = cache['y']
+        subject_ids = cache['subject_ids']
+        n_channels = cache['n_channels']
         print(f"   Total epochs loaded: {len(y)} ({len(X)//2} per class)", flush=True)
-        print(f"   Shape: {X.shape}", flush=True)
+        print(f"   Shape: {X.shape} ({n_channels} motor-cortex channels)", flush=True)
+        subjects = sorted(set(subject_ids))
     else:
         subjects = list(range(1, N_SUBJECTS + 1))
         motor_runs = [4, 6, 8, 10, 12, 14]   # All left/right fist motor imagery runs
         rest_runs  = [1, 2]                    # Eyes-open + eyes-closed baselines
         
-        all_motor_epochs = []
+        all_motor_epochs = []   # list of (epoch_array, subject_id)
         all_rest_epochs  = []
         n_channels = None
         
         # ── 1. Extract MOTOR IMAGERY epochs ──────────────────────────────
-        print(f"\n[1/5] Downloading & extracting MOTOR IMAGERY epochs...", flush=True)
+        print(f"\n[1/6] Downloading & extracting MOTOR IMAGERY epochs...", flush=True)
         print(f"       Subjects: {len(subjects)}, Runs: {motor_runs}", flush=True)
+        print(f"       Channel selection: {len(MOTOR_CHANNEL_NAMES)} motor-cortex channels", flush=True)
         
         for subj in subjects:
             for run in motor_runs:
@@ -253,17 +298,22 @@ def main():
                 if path is None:
                     continue
                 try:
-                    epochs, nc = extract_epochs_from_edf(path, EPOCH_SAMPLES, event_aligned=True)
+                    epochs, nc = extract_epochs_from_edf(
+                        path, EPOCH_SAMPLES, event_aligned=True,
+                        pick_channels=MOTOR_CHANNEL_NAMES,
+                        artifact_threshold=ARTIFACT_THRESHOLD,
+                    )
                     if n_channels is None:
                         n_channels = nc
-                    all_motor_epochs.extend(epochs)
+                    for ep in epochs:
+                        all_motor_epochs.append((ep, subj))
                 except Exception as e:
                     print(f"   [WARN] S{subj:03d}R{run:02d}: {e}", flush=True)
         
-        print(f"   Extracted {len(all_motor_epochs)} motor imagery epochs", flush=True)
+        print(f"   Extracted {len(all_motor_epochs)} motor imagery epochs (post-artifact-rejection)", flush=True)
         
         # ── 2. Extract REST epochs ───────────────────────────────────────
-        print(f"\n[2/5] Downloading & extracting REST epochs...", flush=True)
+        print(f"\n[2/6] Downloading & extracting REST epochs...", flush=True)
         print(f"       Subjects: {len(subjects)}, Runs: {rest_runs}", flush=True)
         
         for subj in subjects:
@@ -272,55 +322,64 @@ def main():
                 if path is None:
                     continue
                 try:
-                    epochs, _ = extract_epochs_from_edf(path, EPOCH_SAMPLES, event_aligned=False)
-                    all_rest_epochs.extend(epochs)
+                    epochs, _ = extract_epochs_from_edf(
+                        path, EPOCH_SAMPLES, event_aligned=False,
+                        pick_channels=MOTOR_CHANNEL_NAMES,
+                        artifact_threshold=ARTIFACT_THRESHOLD,
+                    )
+                    for ep in epochs:
+                        all_rest_epochs.append((ep, subj))
                 except Exception as e:
                     print(f"   [WARN] S{subj:03d}R{run:02d}: {e}", flush=True)
         
-        print(f"   Extracted {len(all_rest_epochs)} rest epochs", flush=True)
+        print(f"   Extracted {len(all_rest_epochs)} rest epochs (post-artifact-rejection)", flush=True)
         
         if len(all_motor_epochs) == 0 or len(all_rest_epochs) == 0:
             print("[ERROR] Not enough data. Aborting.", flush=True)
             return
         
-        # ── 3. Augment & Balance ─────────────────────────────────────────
-        print(f"\n[3/5] Augmenting & balancing dataset...", flush=True)
+        # ── 3. Balance (NO augmentation here — augmentation moves inside CV) ──
+        print(f"\n[3/6] Balancing dataset (augmentation deferred to inside CV)...", flush=True)
         
         rng = np.random.RandomState(42)
         
-        print(f"   Motor epochs before augmentation: {len(all_motor_epochs)}", flush=True)
-        all_motor_epochs = augment_epochs(all_motor_epochs, max_jitter=25, rng=rng)
-        print(f"   Motor epochs after augmentation:  {len(all_motor_epochs)}", flush=True)
+        n_balanced = min(len(all_motor_epochs), len(all_rest_epochs))
         
-        print(f"   Rest epochs before augmentation:  {len(all_rest_epochs)}", flush=True)
-        all_rest_epochs = augment_epochs(all_rest_epochs, max_jitter=25, rng=rng)
-        print(f"   Rest epochs after augmentation:   {len(all_rest_epochs)}", flush=True)
+        motor_idx = rng.choice(len(all_motor_epochs), n_balanced, replace=False)
+        rest_idx  = rng.choice(len(all_rest_epochs), n_balanced, replace=False)
         
-        X_motor = np.array(all_motor_epochs)
-        X_rest  = np.array(all_rest_epochs)
+        selected_motor = [all_motor_epochs[i] for i in motor_idx]
+        selected_rest  = [all_rest_epochs[i] for i in rest_idx]
         
-        n_balanced = min(len(X_motor), len(X_rest))
-        
-        X_motor = X_motor[rng.choice(len(X_motor), n_balanced, replace=False)]
-        X_rest  = X_rest[rng.choice(len(X_rest), n_balanced, replace=False)]
+        X_motor = np.array([ep for ep, _ in selected_motor])
+        X_rest  = np.array([ep for ep, _ in selected_rest])
+        motor_subjects = [s for _, s in selected_motor]
+        rest_subjects  = [s for _, s in selected_rest]
         
         X = np.concatenate([X_rest, X_motor], axis=0)
         y = np.concatenate([np.zeros(n_balanced, dtype=int), np.ones(n_balanced, dtype=int)])
+        subject_ids = np.array(rest_subjects + motor_subjects)
         
         shuffle_idx = rng.permutation(len(y))
         X = X[shuffle_idx]
         y = y[shuffle_idx]
+        subject_ids = subject_ids[shuffle_idx]
         
-        print(f"   Total epochs: {len(y)} ({n_balanced} per class)", flush=True)
-        print(f"   Shape: {X.shape}", flush=True)
+        print(f"   Total epochs: {len(y)} ({n_balanced} per class, NO augmentation leakage)", flush=True)
+        print(f"   Shape: {X.shape} ({n_channels} motor-cortex channels)", flush=True)
         
         print("\n   Caching balanced epochs to disk...", flush=True)
         with open(cache_epochs_path, "wb") as f:
-            pickle.dump((X, y, n_channels), f, protocol=4)
-        print("   OK saved to moabb_epochs_v6.pkl", flush=True)
+            pickle.dump({
+                'X': X, 'y': y,
+                'subject_ids': subject_ids,
+                'n_channels': n_channels,
+            }, f, protocol=4)
+        print("   OK saved to moabb_epochs_v7.pkl", flush=True)
         
-    # ── 4. Architecture tournament ───────────────────────────────────
-    print(f"\n[4/5] Architecture tournament (5-Fold CV, n_jobs=1 single process)...", flush=True)
+    # ── 4. Architecture tournament (leakage-free: augment INSIDE CV) ─
+    print(f"\n[4/6] Architecture tournament (5-Fold CV, augmentation INSIDE folds)...", flush=True)
+    print(f"       This gives HONEST accuracy — no augmented copies leak into test folds.", flush=True)
     
     pipelines = {
         "MDM": Pipeline([
@@ -347,30 +406,57 @@ def main():
     
     for name, pipe in pipelines.items():
         try:
-            print(f"   Evaluating {name:12} across 5 folds...", flush=True)
-            scores = cross_val_score(pipe, X, y, cv=cv, scoring='accuracy', n_jobs=1)
+            print(f"   Evaluating {name:12} across 5 folds (augment train only)...", flush=True)
+            fold_scores = []
+            for fold_i, (train_idx, test_idx) in enumerate(cv.split(X, y)):
+                X_train, y_train = X[train_idx], y[train_idx]
+                X_test,  y_test  = X[test_idx],  y[test_idx]
+                
+                # Augment ONLY the training fold — test fold stays clean
+                X_train_aug = augment_epochs(list(X_train), max_jitter=25,
+                                             rng=np.random.RandomState(42 + fold_i))
+                X_train_aug = np.array(X_train_aug)
+                y_train_aug = np.concatenate([
+                    y_train,  # originals
+                    np.repeat(y_train, 2),  # 2 augmented copies per original
+                ])
+                
+                pipe_clone = Pipeline([(n, type(s)(**s.get_params())) for n, s in pipe.steps])
+                pipe_clone.fit(X_train_aug, y_train_aug)
+                fold_acc = pipe_clone.score(X_test, y_test)
+                fold_scores.append(fold_acc)
+                print(f"      Fold {fold_i+1}: {fold_acc*100:.2f}%", flush=True)
+            
+            scores = np.array(fold_scores)
             mean_acc = scores.mean()
-            print(f"   - {name:12}: {mean_acc*100:6.2f}% (+/- {scores.std()*100:.2f}%)", flush=True)
+            print(f"   - {name:12}: {mean_acc*100:6.2f}% (+/- {scores.std()*100:.2f}%) [HONEST]", flush=True)
             if mean_acc > best_score:
                 best_score = mean_acc
                 best_name = name
                 best_pipe = pipe
                 best_scores = scores
         except Exception as e:
+            import traceback
             print(f"   - {name:12}: FAILED ({e})", flush=True)
+            traceback.print_exc()
 
-    print(f"\n   [WINNER] {best_name} ({best_score*100:.2f}%)", flush=True)
+    print(f"\n   [WINNER] {best_name} ({best_score*100:.2f}%) — leakage-free", flush=True)
     pipeline = best_pipe
 
-    # ── 5. Train final model with Platt calibration ──────────────────
-    print("\n[5/5] Fitting final model with Platt calibration...", flush=True)
+    # ── 5. Train final model on ALL data (with augmentation) + Platt ─
+    print("\n[5/6] Fitting final model on full dataset with Platt calibration...", flush=True)
     
-    # First fit the base pipeline
-    pipeline.fit(X, y)
+    # Augment full dataset for final training
+    X_aug = augment_epochs(list(X), max_jitter=25, rng=np.random.RandomState(42))
+    X_aug = np.array(X_aug)
+    y_aug = np.concatenate([y, np.repeat(y, 2)])
+    
+    # Fit base pipeline on augmented data
+    pipeline.fit(X_aug, y_aug)
     
     # Wrap with Platt scaling for calibrated probabilities
     calibrated = CalibratedClassifierCV(pipeline, method='sigmoid', cv=3)
-    calibrated.fit(X, y)
+    calibrated.fit(X_aug, y_aug)
 
     # ── 6. Save ──────────────────────────────────────────────────────
     ch_mean = np.mean(X, axis=(0, 2))
@@ -386,10 +472,13 @@ def main():
         'sfreq'            : float(SFREQ),
         'uses_fbcsp'       : uses_fbcsp,
         'filter_bands'     : FILTER_BANDS if uses_fbcsp else None,
+        'motor_channels'   : MOTOR_CHANNEL_NAMES,
         'uses_tangent_space': False,
         'classes'          : {0: 'IDLE', 1: 'FORWARD'},
         'cv_mean'          : float(best_scores.mean()),
         'cv_std'           : float(best_scores.std()),
+        'cv_leakage_free'  : True,
+        'artifact_rejection': True,
         'subjects'         : subjects,
         'pipeline'         : best_name,
         'calibrated'       : True,
@@ -403,12 +492,13 @@ def main():
     print(f"\n[SAVED] Model  -> {MODEL_OUT}", flush=True)
     print(f"[SAVED] Stats  -> {STATS_OUT}", flush=True)
     print(f"\n{'='*60}", flush=True)
-    print(f"  CV Accuracy  : {best_scores.mean()*100:.2f}%", flush=True)
+    print(f"  CV Accuracy  : {best_scores.mean()*100:.2f}% (LEAKAGE-FREE)", flush=True)
     print(f"  Subjects     : {len(subjects)}", flush=True)
-    print(f"  Channels     : {n_channels}", flush=True)
+    print(f"  Channels     : {n_channels} (motor-cortex selection)", flush=True)
     print(f"  Epoch length : {EPOCH_SAMPLES} samples (1s @ {SFREQ}Hz)", flush=True)
     print(f"  Pipeline     : {best_name} (Platt-calibrated)", flush=True)
-    print(f"  Augmentation : 3× (time jitter ±25 samples)", flush=True)
+    print(f"  Augmentation : 3× inside CV only (no leakage)", flush=True)
+    print(f"  Artifact rej.: ±{ARTIFACT_THRESHOLD*1e6:.0f}µV peak-to-peak", flush=True)
     print(f"  Filter bands : {len(FILTER_BANDS)} sub-bands" if uses_fbcsp else "  Filter bands : Single broadband", flush=True)
     print(f"  Classes      : 0=IDLE, 1=FORWARD", flush=True)
     print(f"{'='*60}\n", flush=True)

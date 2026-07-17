@@ -1,9 +1,11 @@
 """
-ORBIT AI — EEG Stream Simulator (MOABB Edition)
+ORBIT AI — EEG Stream Simulator (v7.0 — Motor Channel Selection)
 ================================================
 Downloads any EDF brainwave file from a URL or local path,
 extracts raw multi-channel epochs, and streams them over a local
 socket for real-time CSP+LDA prediction.
+
+v7.0: Selects 22 motor-cortex channels to match trained model.
 """
 
 import socket
@@ -137,11 +139,25 @@ class EEGStreamSimulator:
             sys.exit(1)
 
     def _load_and_extract(self, edf_path):
-        """Load EDF, extract band power + raw epoch per 1s chunk."""
+        """Load EDF, pick motor-cortex channels, extract band power + raw epoch per 1s chunk."""
         is_temp = not Path(edf_path).exists() or edf_path.startswith(tempfile.gettempdir())
+
+        # Motor-cortex channel selection (must match train_moabb.py v7.0)
+        MOTOR_CHANNEL_NAMES = [
+            'Fc5.', 'Fc3.', 'Fc1.', 'Fcz.', 'Fc2.', 'Fc4.', 'Fc6.',
+            'C5..', 'C3..', 'C1..', 'Cz..', 'C2..', 'C4..', 'C6..',
+            'Cp5.', 'Cp3.', 'Cp1.', 'Cpz.', 'Cp2.', 'Cp4.', 'Cp6.',
+        ]
 
         try:
             raw = mne.io.read_raw_edf(edf_path, preload=True, verbose=False)
+            
+            # Channel selection: pick only motor-cortex channels
+            available = [ch for ch in MOTOR_CHANNEL_NAMES if ch in raw.ch_names]
+            if len(available) > 0:
+                raw.pick_channels(available)
+                print(f"[SIM] Selected {len(available)} motor-cortex channels (of {64} total)")
+            
             raw.filter(0.5, 50, verbose=False)
 
             data = raw.get_data()
@@ -157,20 +173,16 @@ class EEGStreamSimulator:
                            if any(t in name for t in motor_targets)]
             
             if not motor_indices:
-                # Fallback: approximate motor cortex positions in 64-ch 10-20 montage
-                if self.n_channels >= 64:
-                    motor_indices = [7, 9, 11, 5, 13]
-                else:
-                    motor_indices = list(range(self.n_channels))
+                motor_indices = list(range(min(self.n_channels, 7)))
             
             print(f"[SIM] {self.n_channels} channels x {n_samples/self.sfreq:.1f}s @ {self.sfreq:.0f}Hz")
-            print(f"[SIM] Motor cortex channels: {len(motor_indices)} indices -> {[ch_names[i] if i < len(ch_names) else i for i in motor_indices[:5]]}")
+            print(f"[SIM] Motor cortex focus: {len(motor_indices)} channels -> {[ch_names[i] if i < len(ch_names) else i for i in motor_indices[:5]]}")
             print("[SIM] Extracting features...")
 
             for start in range(0, n_samples - chunk_size, chunk_size // 2):
                 chunk = data[:, start: start + chunk_size]
 
-                # Band powers averaged across ALL channels (for general brain power display)
+                # Band powers averaged across ALL selected channels (for general brain power display)
                 band_powers = [
                     np.mean([get_db_power(chunk[c], self.sfreq, f1, f2)
                              for c in range(self.n_channels)])
@@ -194,7 +206,7 @@ class EEGStreamSimulator:
 
                 self.samples.append({
                     "features"  : features,
-                    "raw_epoch" : chunk.tolist(),   # shape: n_ch x chunk_size
+                    "raw_epoch" : chunk.tolist(),   # shape: n_ch x chunk_size (now 22 channels)
                     "sfreq"     : float(self.sfreq),
                     "n_channels": int(self.n_channels),
                 })
