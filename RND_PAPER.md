@@ -1,4 +1,4 @@
-﻿# Ã°Å¸Â§Â  ORBIT AI Ã¢â‚¬â€ Research & Development Paper
+# Ã°Å¸Â§Â  ORBIT AI Ã¢â‚¬â€ Research & Development Paper
 
 ### A Hybrid Brain-Computer Interface for Accessible Wheelchair Control
 
@@ -44,7 +44,7 @@
 
 ## Abstract
 
-ORBIT AI is an open-source, hybrid Brain-Computer Interface (BCI) system designed to restore mobility to individuals with severe motor impairments. The system fuses electroencephalography (EEG)-based mental command decoding with electromyography (EMG)-based emergency stop detection to provide safe, real-time wheelchair control. By leveraging state-of-the-art Riemannian geometry classifiers trained on large-scale clinical EEG datasets, ORBIT AI achieves 87%+ classification accuracy for motor imagery commands (IDLE vs. FORWARD) without requiring custom hardware calibration beyond a 45-second profiling session.
+ORBIT AI is an open-source, hybrid Brain-Computer Interface (BCI) system designed to restore mobility to individuals with severe motor impairments. The system fuses electroencephalography (EEG)-based mental command decoding with electromyography (EMG)-based emergency stop detection to provide safe, real-time wheelchair control. By leveraging state-of-the-art classifiers trained on large-scale clinical EEG datasets, ORBIT AI achieves 83.71% cross-validated classification accuracy for motor imagery commands (IDLE vs. FORWARD) using a 21-channel FBCSP+LDA pipeline with corrected cross-validation methodology (data leakage resolved) and artifact rejection, without requiring custom hardware calibration beyond a 45-second profiling session.
 
 ---
 
@@ -661,7 +661,7 @@ Full dependency list as specified in `requirements.txt`:
 
 | Metric | Value | Condition |
 |--------|-------|-----------|
-| **Validation Accuracy** | 87%+ | IDLE vs. FORWARD, PhysioNet 5-subject subset |
+| **Validation Accuracy** | 83.71% | IDLE vs. FORWARD, 21-channel FBCSP+LDA (data leakage resolved & artifact rejection) |
 | **Cross-Validation** | 5-Fold Stratified | Best pipeline selected automatically |
 | **Inference Latency** | < 100 ms | Socket receive Ã¢â€ â€™ prediction Ã¢â€ â€™ display |
 | **EMG Stop Latency** | < 100 ms | Jaw-clench to STOP command |

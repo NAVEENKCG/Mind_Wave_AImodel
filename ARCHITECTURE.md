@@ -1,6 +1,6 @@
 # ORBIT AI — Hybrid System Architecture (v3.0)
 
-ORBIT AI is a **Hybrid BCI wheelchair simulation system** combining clinical-grade brainwave analysis with a premium web-based virtual dashboard. It uses real EEG motor imagery data, MOABB CSP+LDA AI inference, and a Next.js 15 real-time web simulator — inspired by the TGAM NeuroSky Mindwave wheelchair project.
+ORBIT AI is a **Hybrid BCI wheelchair simulation system** combining clinical-grade brainwave analysis with a premium web-based virtual dashboard. It uses real EEG motor imagery data, MOABB FBCSP+LDA AI inference, and a Next.js 15 real-time web simulator — inspired by the TGAM NeuroSky Mindwave wheelchair project.
 
 ---
 
@@ -35,7 +35,7 @@ flowchart TD
     subgraph LIVE["4. Real-Time Execution"]
         SOCKET --> GATE{1. Signal Gate}
         GATE --Valid--> FATIGUE{2. Fatigue Gate}
-        FATIGUE --Safe--> BRAIN[3. CSP+LDA AI]
+        FATIGUE --Safe--> BRAIN[3. FBCSP+LDA AI]
         FATIGUE --Clench--> STOP[EMG EMERGENCY STOP]
         BRAIN -->|Prediction| VOTE[4. Weighted Smoothing]
         VOTE --> SPLIT{Output Mode}
@@ -467,7 +467,7 @@ Switch modes by changing `SERIAL_PORT` in `config.py` and removing `--demo`.
 
 | Metric | Value | Condition |
 |--------|-------|-----------|
-| **Validation Accuracy** | 87%+ | IDLE vs. FORWARD, PhysioNet 5-subject subset |
+| **Validation Accuracy** | 83.71% | IDLE vs. FORWARD, 21-channel FBCSP+LDA (data leakage resolved & artifact rejection) |
 | **Cross-Validation** | 5-Fold Stratified | Best pipeline auto-selected |
 | **Inference Latency** | < 100ms | Socket receive → prediction → display |
 | **EMG Stop Latency** | < 100ms | Jaw-clench to STOP command |

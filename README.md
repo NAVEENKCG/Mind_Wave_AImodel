@@ -8,7 +8,7 @@
 
 **ORBIT AI** is a state-of-the-art, open-source **Brain-Computer Interface** designed for medical wheelchair control. It uses a **Hybrid BCI-EMG** architecture that fuses clinical-grade neural decoding (EEG) with high-speed muscle signal detection (EMG) for maximum safety and reliability.
 
-> **87%+ accuracy** on IDLE vs. FORWARD classification using Riemannian geometry pipeline · **< 100ms** emergency stop via jaw-clench EMG detection · **45-second** personal calibration
+> **83.71% accuracy** on IDLE vs. FORWARD classification using 21-channel FBCSP+LDA pipeline with corrected cross-validation · **< 100ms** emergency stop via jaw-clench EMG detection · **45-second** personal calibration
 
 ---
 
@@ -209,7 +209,7 @@ The `predict_realtime.py` engine implements sequential security checks before an
 ### Current System Results
 | Metric | Value | Condition |
 |--------|-------|-----------|
-| **Validation Accuracy** | 87%+ | IDLE vs. FORWARD, PhysioNet 5-subject subset |
+| **Validation Accuracy** | 83.71% | IDLE vs. FORWARD, 21-channel FBCSP+LDA (data leakage resolved & artifact rejection) |
 | **Cross-Validation** | 5-Fold Stratified | Best pipeline auto-selected |
 | **Inference Latency** | < 100ms | Socket → prediction → display |
 | **EMG Stop Latency** | < 100ms | Jaw-clench → STOP command |
@@ -218,8 +218,8 @@ The `predict_realtime.py` engine implements sequential security checks before an
 ### Overall Project Benchmarks
 | Metric | Value |
 |--------|-------|
-| Model | MOABB CSP+LDA |
-| Cross-validation Accuracy | ~85% (PhysioNet Motor Imagery) |
+| Model | MOABB FBCSP+LDA |
+| Cross-validation Accuracy | 83.71% (PhysioNet Motor Imagery) |
 | Inference Latency | < 1 second |
 | Training Subjects | 9+ clinical EEG subjects |
 | Emergency Stop Response | < 100ms (jaw clench EMG) |
