@@ -14,7 +14,7 @@
 **Date:** June 2026  
 **Status:** Active Development
 
-![ORBIT AI Concept Art](C:/Users/Naveenraj/.gemini/antigravity-ide/brain/86130c33-a16f-4db1-b2a7-a1012eaac1de/bci_system_overview_1780498586091.png)
+![ORBIT AI Concept Art](assets/bci_system_overview.png)
 
 ---
 
@@ -735,3 +735,4 @@ This project builds upon the open-source contributions of the global BCI and neu
 ---
 
 *Document generated: June 2026 | ORBIT AI Project | NAVEENKCG/Mind_Wave_AImodel*
+
