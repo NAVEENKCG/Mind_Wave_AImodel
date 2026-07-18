@@ -28,14 +28,10 @@ We use a **"Safety-First"** dual-modality strategy — mental tasks for directio
 
 ## 📋 Prerequisites
 
-Python 3.10+
-```bash
-pip install -r requirements.txt
-```
-
-For hardware mode:
-* BioAmp EXG Pill connected via USB
-* Update `SERIAL_PORT` in `config.py`
+- Python 3.10+
+- Node.js 18+ and npm (only required for the web dashboard)
+- For real hardware mode: BioAmp EXG Pill connected via USB, 
+  update SERIAL_PORT in config.py
 
 ---
 
@@ -107,62 +103,90 @@ flowchart TD
 
 ## 🚀 Getting Started
 
-### Step 1: Install (pip install -r requirements.txt)
-```powershell
-git clone https://github.com/NAVEENKCG/Mind_Wave_AImodel.git
-cd Mind_Wave_AImodel
+### 1. Installation
+
+```bash
 pip install -r requirements.txt
 ```
 
-### Step 2: Quick Demo (python demo_mode.py)
-Run the automated live demo with a single command to see the BCI dashboard in action:
-```powershell
-python demo_mode.py
+For the web dashboard, also install Node.js dependencies:
+```bash
+cd wheelchair-simulator
+npm install
+cd ..
 ```
 
-### Step 3: Train your own model (python train_moabb.py)
-Uses MOABB to learn from 100+ clinical EEG subjects (PhysioNet + BNCI datasets). Automatically searches for the best engine (MDM vs LDA vs SVM).
-```powershell
+### 2. The "Universal Brain" Training
+
+```bash
 python train_moabb.py
 ```
 
-### Step 4: Personal Calibration (python calibrate.py)
-Every brain is unique. Run this 45-second session to map your personal bio-thresholds (α baseline, θ ratio, β reactivity).
-```powershell
+### 3. Personal Calibration
+
+IMPORTANT: This requires simulate_tgam.py running in a 
+separate terminal first (see Step 4a below), since 
+calibrate.py connects to it via socket on port 9999.
+
+Terminal 1:
+```bash
+python simulate_tgam.py
+```
+
+Terminal 2 (after Terminal 1 is running):
+```bash
 python calibrate.py
 ```
 
-### Step 5: Real Hardware (bridge_bioamp.py)
-Connect real or simulated hardware to the live dashboard.
+### 4. Real-time Control — Two Interface Options
 
-**Simulation mode** (for testing — uses real clinical EEG patterns):
-```powershell
-# Terminal 1: Start the signal simulator
+Choose ONE of the following based on your needs:
+
+#### Option A — Terminal Dashboard (fastest, for quick testing and debugging)
+
+Terminal 1:
+```bash
 python simulate_tgam.py
-
-# Terminal 2: Start the dashboard
-python predict_realtime.py
 ```
 
-**Real hardware mode** (BioAmp EXG Pill):
-```powershell
-# Terminal 1: Start the hardware bridge
+Terminal 2:
+```bash
+python predict_realtime.py --demo
+```
+
+#### Option B — Full Web Dashboard (recommended for demos and presentations)
+
+Terminal 1:
+```bash
+python simulate_tgam.py
+```
+
+Terminal 2:
+```bash
+python predict_websocket.py
+```
+
+Terminal 3:
+```bash
+cd wheelchair-simulator
+npm run dev
+```
+
+Then open http://localhost:3000 in your browser to see the 
+live wheelchair arena, brain power panel, and status dashboard.
+
+#### For Real Hardware (instead of simulate_tgam.py)
+
+Terminal 1:
+```bash
 python bridge_bioamp.py
-
-# Terminal 2: Start the dashboard
-python predict_realtime.py
 ```
 
-**Budget hardware mode** (AD8232):
-```powershell
-# Terminal 1: Start the budget bridge
-python bridge_ad8232.py
-
-# Terminal 2: Start the dashboard
+Terminal 2:
+```bash
 python predict_realtime.py
+# (or python predict_websocket.py for the web dashboard)
 ```
-
-> Switch modes by changing `SERIAL_PORT` in `config.py`.
 
 ---
 
@@ -253,7 +277,6 @@ Mind_Wave_AImodel/
 ├── # ── Diagnostics & Reporting ───────────────────
 ├── evaluate.py                     # Model evaluation (accuracy, F1, confusion matrix)
 ├── diagnose.py                     # System health check + event-aligned testing
-├── session_logger.py               # 100ms telemetry logger
 ├── logger_orbit.py                 # Centralized daily logging
 ├── auto_report.py                  # Post-session PDF/text report generator
 │
@@ -274,18 +297,28 @@ Mind_Wave_AImodel/
 
 ## ⚠️ Troubleshooting
 
-Problem: ImportError: No module named logger_orbit
-Fix: The file exists in repo. Run: pip install -r requirements.txt
+**ImportError: No module named 'logger_orbit'**
+Ensure logger_orbit.py exists in the project root. Run 
+git pull to fetch the latest version if missing.
 
-Problem: Connection refused on port 9999
-Fix: Start simulate_tgam.py FIRST in a separate terminal
+**Connection refused on port 9999**
+Start simulate_tgam.py FIRST, in its own terminal, before 
+running calibrate.py, predict_realtime.py, or predict_websocket.py.
 
-Problem: All predictions show IDLE
-Fix: Run calibrate.py to set personal thresholds
+**Web dashboard shows blank page / won't connect**
+1. Confirm predict_websocket.py is running and shows 
+   "WebSocket server started" in the terminal
+2. Confirm you ran npm install inside wheelchair-simulator/ 
+   at least once
+3. Check the browser console for WebSocket connection errors
 
-Problem: Poor signal quality
-Fix: Ensure BioAmp EXG Pill electrodes are firmly placed
-     Wipe skin with alcohol wipe before placing electrodes
+**All predictions show IDLE**
+Run python calibrate.py to set your personal bio-thresholds 
+before running predict_realtime.py or predict_websocket.py.
+
+**ModuleNotFoundError for moabb or pyriemann**
+These are required by train_moabb.py. Run:
+  pip install moabb pyriemann
 
 ---
 
@@ -293,10 +326,7 @@ Fix: Ensure BioAmp EXG Pill electrodes are firmly placed
 
 | Document | Description |
 |----------|-------------|
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Technical deep-dive into algorithms, models, and safety layers |
-| [visual_workflow.md](./visual_workflow.md) | Mermaid diagrams covering every data pipeline and system flow |
-| [FILE_ROLES.md](./FILE_ROLES.md) | Comprehensive file-by-file role reference |
-| [orbit_ai_architecture.md](./orbit_ai_architecture.md) | Full architecture manual with setup workflows |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Full system architecture, file roles, and visual workflows |
 | [RND_PAPER.md](./RND_PAPER.md) | Research paper with datasets, algorithms, and 23 academic references |
 
 ---
