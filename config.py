@@ -67,3 +67,8 @@ QUALITY_FILTERS = {
 # Final File Pathing for inference
 MODEL_PATH = MODELS_DIR / "best_model.pth"
 COMMANDS = CLASS_NAMES
+
+# EMG / ERD Configuration
+EMG_THRESHOLD_UV = 500.0
+ERD_THRESHOLD = 0.15
+ERD_SYMMETRY_TOLERANCE = 0.30
