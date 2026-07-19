@@ -5,6 +5,8 @@ Reads raw EEG/EMG data from two BioAmp EXG Pills via Serial,
 applies real-time filtering, extracts ERD features, and streams 
 to the Orbit AI Dashboard.
 
+Fixed: channel array size (21, not 64) and EMG fast-path latency (<100ms target) — see CHANGELOG.md
+
 Hardware Limitation / Methodology Note:
 This is a 2-channel approximation (C3 and C4) of motor imagery.
 Because a direct midline (Cz) channel is unavailable, the FORWARD 
@@ -23,6 +25,15 @@ import time
 import numpy as np
 from scipy.signal import butter, lfilter, welch
 import os
+
+MOTOR_CHANNEL_NAMES = [
+    'Fc5.', 'Fc3.', 'Fc1.', 'Fcz.', 'Fc2.', 'Fc4.', 'Fc6.',
+    'C5..', 'C3..', 'C1..', 'Cz..', 'C2..', 'C4..', 'C6..',
+    'Cp5.', 'Cp3.', 'Cp1.', 'Cpz.', 'Cp2.', 'Cp4.', 'Cp6.',
+]
+N_MOTOR_CHANNELS = len(MOTOR_CHANNEL_NAMES)  # 21, computed not hardcoded
+C3_INDEX = MOTOR_CHANNEL_NAMES.index('C3..')  # 8
+C4_INDEX = MOTOR_CHANNEL_NAMES.index('C4..')  # 12
 
 from config import (
     SERIAL_PORT, BAUD_RATE, EMG_THRESHOLD_UV,
@@ -49,6 +60,13 @@ try:
         BASELINE_POWER_C4 = combined_baseline
 except Exception as e:
     print(f"⚠ Could not load personal profile for baseline power: {e}")
+
+if BASELINE_POWER_C3 == 1.0:
+    print("⚠️  WARNING: personal_profile.json baseline_alpha/"
+          "baseline_beta not found or using default fallback "
+          "(1.0). ERD calculations will be meaningless until "
+          "you run calibrate.py successfully. Do not trust "
+          "classification output until this warning is gone.")
 
 def butter_bandpass(lowcut, highcut, fs, order=5):
     nyq = 0.5 * fs
@@ -128,17 +146,33 @@ class BioAmpBridge:
             # exit(1)
 
     def get_packet(self):
-        """Reads from Serial until a full 1s epoch is collected."""
+        """Reads from Serial. Returns immediately with an 
+        emergency-stop packet if EMG is detected on any 
+        single sample. Otherwise collects a full 1s epoch 
+        before returning a normal classification packet."""
         while len(self.raw_buffer_c3) < self.chunk_size:
             line = self.ser.readline().decode('utf-8', errors='ignore').strip()
             if "," in line:
                 parts = line.split(",")
                 if len(parts) == 2:
                     try:
-                        self.raw_buffer_c3.append(float(parts[0]))
-                        self.raw_buffer_c4.append(float(parts[1]))
+                        c3_sample = float(parts[0])
+                        c4_sample = float(parts[1])
                     except ValueError:
-                        pass
+                        continue
+
+                    # Fast EMG check on this single sample, before it's added to the buffer
+                    if max(abs(c3_sample), abs(c4_sample)) > EMG_THRESHOLD_UV:
+                        print(f"🚨 EMG SPIKE DETECTED — immediate stop")
+                        orbit_logger.log_event("STOP", 1.0, "GOOD", "N/A")
+                        return {
+                            "_emg_emergency_stop": True,
+                            "_timestamp": time.time(),
+                            "_n_channels": N_MOTOR_CHANNELS,
+                        }
+
+                    self.raw_buffer_c3.append(c3_sample)
+                    self.raw_buffer_c4.append(c4_sample)
         
         chunk_c3 = np.array(self.raw_buffer_c3[:self.chunk_size])
         chunk_c4 = np.array(self.raw_buffer_c4[:self.chunk_size])
@@ -153,17 +187,17 @@ class BioAmpBridge:
         filtered_c3 = bandpass_filter(chunk_c3, 1.0, 45.0, SFREQ)
         filtered_c4 = bandpass_filter(chunk_c4, 1.0, 45.0, SFREQ)
         
-        # Prepare 64-channel payload (C3 is index 8, C4 is index 12 based on train_moabb.py layout)
-        epoch_64ch = np.zeros((64, len(filtered_c3)))
-        epoch_64ch[8] = filtered_c3
-        epoch_64ch[12] = filtered_c4
+        # Prepare payload
+        epoch = np.zeros((N_MOTOR_CHANNELS, len(filtered_c3)))
+        epoch[C3_INDEX] = filtered_c3
+        epoch[C4_INDEX] = filtered_c4
         
         packet = {
             "attention": 0.0,
             "meditation": 0.0,
-            "_raw_epoch": epoch_64ch.tolist(),
+            "_raw_epoch": epoch.tolist(),
             "_sfreq": SFREQ,
-            "_n_channels": 64,
+            "_n_channels": N_MOTOR_CHANNELS,
             "_stop_source": "NONE",
             "_c3_erd": 0.0,
             "_c4_erd": 0.0
@@ -219,6 +253,12 @@ class BioAmpBridge:
                         while True:
                             try:
                                 packet = self.get_packet()
+                                if packet.get("_emg_emergency_stop"):
+                                    # Send priority interrupt immediately as-is
+                                    data = (json.dumps(packet) + "\n").encode()
+                                    conn.sendall(data)
+                                    continue
+
                                 data = (json.dumps(packet) + "\n").encode()
                                 conn.sendall(data)
                             except Exception as e:
