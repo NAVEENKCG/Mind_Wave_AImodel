@@ -281,6 +281,9 @@ class RealtimePredictor:
                 if ch_idx >= n_ch:
                     continue
                 ch_data = epoch_arr[ch_idx]
+                # Skip channels that are entirely padded with zeros (e.g. from 2-channel bioamp bridge)
+                if np.all(ch_data == 0):
+                    continue
                 nperseg = min(len(ch_data), int(fs))
                 if nperseg < 8:
                     continue
@@ -302,33 +305,6 @@ class RealtimePredictor:
         fwd  = 1.0 / (1.0 + np.exp(-dist * 5.0))
         return fwd, 1.0 - fwd
 
-    # ── Hysteresis: Stabilize command output ─────────────────────────
-    def apply_hysteresis(self, raw_command):
-        """
-        Prevents rapid flickering between FORWARD and IDLE.
-        Requires multiple consecutive consistent predictions before switching state.
-        """
-        if raw_command == self.confirmed_command:
-            # Same as current state — reinforce
-            self.consecutive_same += 1
-        else:
-            # Different from current state — count toward switch
-            self.consecutive_same += 1
-            
-            # Determine how many consecutive predictions are needed to switch
-            if self.confirmed_command == "IDLE" and raw_command == "FORWARD":
-                needed = self.CONFIRM_THRESHOLD  # Switch TO forward: need N confirmations
-            else:
-                needed = self.RELEASE_THRESHOLD  # Switch BACK to idle: need more confirmations
-            
-            if self.consecutive_same >= needed:
-                self.confirmed_command = raw_command
-                self.consecutive_same = 0
-            else:
-                # Not enough evidence to switch yet — keep current state
-                return self.confirmed_command
-        
-        return self.confirmed_command
 
     def run(self):
         # Track consecutive raw predictions for hysteresis

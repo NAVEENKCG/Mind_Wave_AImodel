@@ -290,8 +290,44 @@ class RealtimePredictor:
         eegmat (21ch): REST=-2.97, MATH=-1.78 → threshold = -2.3 works
         NOTE: does NOT generalise across different channel counts.
         """
-        x_raw = np.array([list(self.window)], dtype=np.float32)
-        attn  = np.mean(x_raw[0, :, 8])
+        raw_epoch = raw_dict.get("_raw_epoch")
+
+        if raw_epoch is not None:
+            epoch_arr = np.array(raw_epoch)
+            fs = raw_dict.get("_sfreq", 160)
+            n_ch = epoch_arr.shape[0]
+
+            if n_ch >= 64:
+                motor_indices = [7, 9, 11, 5, 13]
+            elif n_ch >= 32:
+                motor_indices = [3, 5, 7]
+            else:
+                motor_indices = list(range(n_ch))
+
+            attn_values = []
+            for ch_idx in motor_indices:
+                if ch_idx >= n_ch:
+                    continue
+                ch_data = epoch_arr[ch_idx]
+                if np.all(ch_data == 0):
+                    continue
+                nperseg = min(len(ch_data), int(fs))
+                if nperseg < 8:
+                    continue
+                f, psd = welch(ch_data, fs=fs, nperseg=nperseg)
+                alpha = np.mean(psd[(f >= 8) & (f <= 13)])
+                beta  = np.mean(psd[(f >= 13) & (f <= 30)])
+                ratio = np.log10((beta + 1e-12) / (alpha + 1e-12))
+                attn_values.append(ratio)
+
+            if attn_values:
+                attn = np.mean(attn_values)
+            else:
+                attn = np.mean([list(self.window)[i][8] for i in range(len(self.window))])
+        else:
+            x_raw = np.array([list(self.window)], dtype=np.float32)
+            attn  = np.mean(x_raw[0, :, 8])
+
         dist  = attn - (-2.3)
         fwd   = 1.0 / (1.0 + np.exp(-dist * 3.0))
         return fwd, 1.0 - fwd
