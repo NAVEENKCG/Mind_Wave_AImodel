@@ -26,6 +26,7 @@ from rich.table import Table
 from scipy.signal import welch
 
 from config import *
+from config import C3_INDEX, C4_INDEX, N_MOTOR_CHANNELS
 from logger_orbit import logger as orbit_logger
 
 COMMANDS = {0: "IDLE", 1: "FORWARD"}
@@ -205,13 +206,21 @@ class RealtimePredictor:
         raw = raw_dict.get("_raw_epoch")
         if not raw: return 0.0
         try:
-            ch_data = np.array(raw)[0] # C3 channel
+            epoch = np.array(raw)
             fs = raw_dict.get("_sfreq", 160)
-            f, pxx = welch(ch_data, fs=fs, nperseg=min(len(ch_data), int(fs)))
-            theta = np.mean(pxx[(f>=4) & (f<=8)])
-            alpha = np.mean(pxx[(f>=8) & (f<=13)])
-            beta  = np.mean(pxx[(f>=13) & (f<=30)])
-            return theta / (alpha + beta + 1e-6)
+            ratios = []
+            for ch_idx in [C3_INDEX, C4_INDEX]:
+                if ch_idx >= epoch.shape[0]:
+                    continue
+                ch_data = epoch[ch_idx]
+                if np.all(ch_data == 0):
+                    continue
+                f, pxx = welch(ch_data, fs=fs, nperseg=min(len(ch_data), int(fs)))
+                theta = np.mean(pxx[(f>=4) & (f<=8)])
+                alpha = np.mean(pxx[(f>=8) & (f<=13)])
+                beta  = np.mean(pxx[(f>=13) & (f<=30)])
+                ratios.append(theta / (alpha + beta + 1e-6))
+            return float(np.mean(ratios)) if ratios else 0.0
         except Exception:
             return 0.0
 
@@ -240,8 +249,9 @@ class RealtimePredictor:
         if epoch.shape[0] > expected_ch:
             epoch = epoch[:expected_ch, :]
         elif epoch.shape[0] < expected_ch:
-            pad = np.zeros((expected_ch - epoch.shape[0], epoch.shape[1]))
-            epoch = np.vstack([epoch, pad])
+            # Cannot run Riemannian classifier on incomplete data (zero-padding
+            # creates degenerate covariance matrices) — fall back to biosensor
+            return self.classify_biosensor(raw_dict)
 
         # ── Epoch length alignment ───────────────────────────────────
         expected_times = self.moabb_stats.get('n_times', epoch.shape[1])
@@ -297,7 +307,10 @@ class RealtimePredictor:
             fs = raw_dict.get("_sfreq", 160)
             n_ch = epoch_arr.shape[0]
 
-            if n_ch >= 64:
+            if n_ch == N_MOTOR_CHANNELS:
+                # 21-channel BioAmp bridge: only C3 and C4 have real data
+                motor_indices = [C3_INDEX, C4_INDEX]
+            elif n_ch >= 64:
                 motor_indices = [7, 9, 11, 5, 13]
             elif n_ch >= 32:
                 motor_indices = [3, 5, 7]
@@ -410,6 +423,10 @@ class RealtimePredictor:
         # Keep last raw_dict for MOABB (needs full packet, not just features)
         self._last_raw = {}
 
+        # Hysteresis state machine: prevents rapid flickering between FORWARD/IDLE
+        raw_command_streak = {"command": "IDLE", "count": 0}
+        confirmed_command = "IDLE"
+
         try:
           with Live(self.build_layout(), refresh_per_second=10,
                     screen=True, console=self.console) as live:
@@ -450,7 +467,7 @@ class RealtimePredictor:
                         
                     if self.fatigue_state == "CRITICAL":
                         self.last_command = "STAY_IDLE (FATIGUED)"
-                        self.last_conf = 100.0
+                        self.last_conf = 1.0
                         live.update(self.build_layout())
                         continue
 
@@ -481,13 +498,33 @@ class RealtimePredictor:
                         else:
                             threshold = self.profile.get("moabb_confidence_threshold", 0.50) if self.profile else 0.50
 
-                        if score_fwd > threshold:
-                            self.last_command = "FORWARD"
+                        # Raw decision from the model
+                        raw_cmd = "FORWARD" if score_fwd > threshold else "IDLE"
+
+                        # Hysteresis state machine: prevents flickering
+                        if raw_cmd == raw_command_streak["command"]:
+                            raw_command_streak["count"] += 1
+                        else:
+                            raw_command_streak["command"] = raw_cmd
+                            raw_command_streak["count"] = 1
+
+                        CONFIRM_THRESHOLD = 3  # Need 3 consistent FORWARDs to engage
+                        RELEASE_THRESHOLD = 1  # Single IDLE immediately stops (safety)
+
+                        if confirmed_command == "IDLE" and raw_cmd == "FORWARD":
+                            if raw_command_streak["count"] >= CONFIRM_THRESHOLD:
+                                confirmed_command = "FORWARD"
+                        elif confirmed_command == "FORWARD" and raw_cmd == "IDLE":
+                            if raw_command_streak["count"] >= RELEASE_THRESHOLD:
+                                confirmed_command = "IDLE"
+
+                        self.last_command = confirmed_command
+
+                        if self.last_command == "FORWARD":
                             self.arena.update(1)
                             self.last_conf = score_fwd
                             self.total_fwd += 1
                         else:
-                            self.last_command = "IDLE"
                             self.last_conf = 1.0 - score_fwd
                             self.total_idle += 1
 

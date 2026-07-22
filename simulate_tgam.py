@@ -142,12 +142,8 @@ class EEGStreamSimulator:
         """Load EDF, pick motor-cortex channels, extract band power + raw epoch per 1s chunk."""
         is_temp = not Path(edf_path).exists() or edf_path.startswith(tempfile.gettempdir())
 
-        # Motor-cortex channel selection (must match train_moabb.py v7.0)
-        MOTOR_CHANNEL_NAMES = [
-            'Fc5.', 'Fc3.', 'Fc1.', 'Fcz.', 'Fc2.', 'Fc4.', 'Fc6.',
-            'C5..', 'C3..', 'C1..', 'Cz..', 'C2..', 'C4..', 'C6..',
-            'Cp5.', 'Cp3.', 'Cp1.', 'Cpz.', 'Cp2.', 'Cp4.', 'Cp6.',
-        ]
+        # Motor-cortex channel selection (imported from config.py as single source of truth)
+        from config import MOTOR_CHANNEL_NAMES
 
         try:
             raw = mne.io.read_raw_edf(edf_path, preload=True, verbose=False)
@@ -262,7 +258,7 @@ class EEGStreamSimulator:
                             data = (json.dumps(packet) + "\n").encode()
                             conn.sendall(data)
                             print(".", end="", flush=True)
-                            time.sleep(0.1)
+                            time.sleep(0.5)  # Align stream rate with chunk stride (500ms)
                         except (ConnectionResetError, BrokenPipeError):
                             print("\n❌ Dashboard disconnected.")
                             break

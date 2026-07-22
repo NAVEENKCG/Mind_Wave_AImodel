@@ -46,6 +46,8 @@ DATA_DIR = ROOT / "data"
 MODELS_DIR.mkdir(exist_ok=True)
 DATA_DIR.mkdir(exist_ok=True)
 
+from config import MOTOR_CHANNEL_NAMES
+
 MODEL_OUT = MODELS_DIR / "moabb_csp_lda.pkl"
 STATS_OUT = DATA_DIR   / "moabb_stats.pkl"
 
@@ -57,11 +59,7 @@ ARTIFACT_THRESHOLD = 100e-6  # ±100µV peak-to-peak artifact rejection
 
 # ── Motor-cortex channel selection (22 of 64) ───────────────────
 # Sensorimotor strip: FC5–FC6, C5–C6, CP5–CP6 (covers ERD/ERS)
-MOTOR_CHANNEL_NAMES = [
-    'Fc5.', 'Fc3.', 'Fc1.', 'Fcz.', 'Fc2.', 'Fc4.', 'Fc6.',  # Frontal-central
-    'C5..', 'C3..', 'C1..', 'Cz..', 'C2..', 'C4..', 'C6..',  # Central (primary motor)
-    'Cp5.', 'Cp3.', 'Cp1.', 'Cpz.', 'Cp2.', 'Cp4.', 'Cp6.',  # Centro-parietal
-]
+# Imported from config.py as single source of truth (MOTOR_CHANNEL_NAMES)
 
 # ── FBCSP frequency sub-bands ───────────────────────────────────
 FILTER_BANDS = [
@@ -224,19 +222,24 @@ def extract_epochs_from_edf(edf_path, epoch_samples, event_aligned=False,
     return epochs, n_channels
 
 
-def augment_epochs(epochs, max_jitter=25, rng=None):
+def augment_epochs(epochs, labels=None, max_jitter=25, rng=None):
     """
     Time-jitter augmentation: create shifted copies of each epoch.
     Adds ±jitter versions, effectively tripling the dataset.
+    If labels is provided, returns (augmented_epochs, augmented_labels).
     """
     if rng is None:
         rng = np.random.RandomState(42)
     
     augmented = list(epochs)  # Keep originals
+    aug_labels = list(labels) if labels is not None else None
+    
     n_times = epochs[0].shape[1] if len(epochs) > 0 else 0
     
-    for epoch in epochs:
+    for i, epoch in enumerate(epochs):
         n_ch, n_t = epoch.shape
+        label = labels[i] if labels is not None else None
+        
         # Forward jitter
         jitter = rng.randint(10, max_jitter + 1)
         if jitter < n_t:
@@ -244,6 +247,8 @@ def augment_epochs(epochs, max_jitter=25, rng=None):
             shifted[:, :n_t - jitter] = epoch[:, jitter:]
             shifted[:, n_t - jitter:] = epoch[:, -1:]  # Pad with last value
             augmented.append(shifted)
+            if aug_labels is not None:
+                aug_labels.append(label)
         
         # Backward jitter
         jitter = rng.randint(10, max_jitter + 1)
@@ -252,7 +257,11 @@ def augment_epochs(epochs, max_jitter=25, rng=None):
             shifted[:, jitter:] = epoch[:, :n_t - jitter]
             shifted[:, :jitter] = epoch[:, :1]  # Pad with first value
             augmented.append(shifted)
+            if aug_labels is not None:
+                aug_labels.append(label)
     
+    if aug_labels is not None:
+        return augmented, np.array(aug_labels)
     return augmented
 
 
@@ -413,13 +422,9 @@ def main():
                 X_test,  y_test  = X[test_idx],  y[test_idx]
                 
                 # Augment ONLY the training fold — test fold stays clean
-                X_train_aug = augment_epochs(list(X_train), max_jitter=25,
+                X_train_aug_list, y_train_aug = augment_epochs(list(X_train), labels=y_train, max_jitter=25,
                                              rng=np.random.RandomState(42 + fold_i))
-                X_train_aug = np.array(X_train_aug)
-                y_train_aug = np.concatenate([
-                    y_train,  # originals
-                    np.repeat(y_train, 2),  # 2 augmented copies per original
-                ])
+                X_train_aug = np.array(X_train_aug_list)
                 
                 pipe_clone = Pipeline([(n, type(s)(**s.get_params())) for n, s in pipe.steps])
                 pipe_clone.fit(X_train_aug, y_train_aug)
@@ -446,17 +451,22 @@ def main():
     # ── 5. Train final model on ALL data (with augmentation) + Platt ─
     print("\n[5/6] Fitting final model on full dataset with Platt calibration...", flush=True)
     
-    # Augment full dataset for final training
-    X_aug = augment_epochs(list(X), max_jitter=25, rng=np.random.RandomState(42))
-    X_aug = np.array(X_aug)
-    y_aug = np.concatenate([y, np.repeat(y, 2)])
+    # Split out 15% calibration set to prevent Platt scaling data leakage
+    from sklearn.model_selection import train_test_split
+    X_train_final, X_cal, y_train_final, y_cal = train_test_split(
+        X, y, test_size=0.15, stratify=y, random_state=42
+    )
+    
+    # Augment full training set for final base model
+    X_aug_list, y_aug = augment_epochs(list(X_train_final), labels=y_train_final, max_jitter=25, rng=np.random.RandomState(42))
+    X_aug = np.array(X_aug_list)
     
     # Fit base pipeline on augmented data
     pipeline.fit(X_aug, y_aug)
     
-    # Wrap with Platt scaling for calibrated probabilities
-    calibrated = CalibratedClassifierCV(pipeline, method='sigmoid', cv=3)
-    calibrated.fit(X_aug, y_aug)
+    # Wrap with Platt scaling using prefit and calibration set
+    calibrated = CalibratedClassifierCV(pipeline, method='sigmoid', cv='prefit')
+    calibrated.fit(X_cal, y_cal)
 
     # ── 6. Save ──────────────────────────────────────────────────────
     ch_mean = np.mean(X, axis=(0, 2))

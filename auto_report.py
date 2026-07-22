@@ -15,12 +15,18 @@ REPORTS_DIR = Path(__file__).resolve().parent / "reports"
 
 def parse_session_log(date_str=None):
     if date_str is None:
-        date_str = datetime.now().strftime("%Y-%m-%d")
-        
-    log_file = LOGS_DIR / f"session_{date_str}.csv"
-    if not log_file.exists():
-        print(f"No log file found for {date_str}.")
-        return None
+        # Find the most recent session file
+        log_files = sorted(LOGS_DIR.glob("session_*.csv"), reverse=True)
+        if not log_files:
+            print("No log files found.")
+            return None
+        log_file = log_files[0]
+        date_str = log_file.stem.replace("session_", "")
+    else:
+        log_file = LOGS_DIR / f"session_{date_str}.csv"
+        if not log_file.exists():
+            print(f"No log file found for {date_str}.")
+            return None
         
     stats = {
         "commands": {"FORWARD": 0, "IDLE": 0, "STOP": 0, "LEFT": 0, "RIGHT": 0},

@@ -35,9 +35,14 @@ except Exception as e:
     pass
 
 from config import *
+from config import C3_INDEX, C4_INDEX, N_MOTOR_CHANNELS
 from logger_orbit import logger as orbit_logger
 
 COMMANDS = {0: "IDLE", 1: "FORWARD"}
+# NOTE: Artifact threshold is in µV. Simulator data arrives in Volts (MNE convention),
+# so we convert to Volts before comparison. BioAmp bridge data is also scaled to Volts
+# inside its bandpass filter output. If raw ADC µV data is ever passed directly,
+# this conversion would need to be conditional.
 ARTIFACT_THRESHOLD_UV = 100  # ±100µV peak-to-peak artifact rejection
 
 MOABB_MODEL_PATH = MODELS_DIR / "moabb_csp_lda.pkl"
@@ -104,13 +109,13 @@ class RealtimePredictor:
         self.baseline_computed = False
         self.adaptive_center = -2.3  # Will be updated during warmup
         self.warmup_probs = []  # Collect model probabilities during warmup for adaptive threshold
-        self.adaptive_threshold = 0.50  # Will be updated after warmup
+        self.adaptive_threshold = 0.60  # Will be updated after warmup (raised from 0.50 for safety)
 
         # Hysteresis state machine: prevents rapid flickering between FORWARD/IDLE
         self.confirmed_command = "IDLE"
         self.consecutive_same = 0
-        self.CONFIRM_THRESHOLD = 2    # Need N consistent predictions to switch TO forward
-        self.RELEASE_THRESHOLD = 2    # Symmetric: same responsiveness for both transitions
+        self.CONFIRM_THRESHOLD = 3    # Need 3 consistent FORWARDs to engage (deliberate intent)
+        self.RELEASE_THRESHOLD = 1    # Single IDLE immediately stops (safety: fast release)
 
         orbit_logger.log_session_start()
 
@@ -207,14 +212,22 @@ class RealtimePredictor:
         raw = raw_dict.get("_raw_epoch")
         if not raw: return 0.0
         try:
-            ch_data = np.array(raw)[0]
+            epoch = np.array(raw)
             fs = raw_dict.get("_sfreq", 160)
-            f, pxx = welch(ch_data, fs=fs, nperseg=min(len(ch_data), int(fs)))
-            theta = np.mean(pxx[(f>=4) & (f<=8)])
-            alpha = np.mean(pxx[(f>=8) & (f<=13)])
-            beta  = np.mean(pxx[(f>=13) & (f<=30)])
-            return theta / (alpha + beta + 1e-6)
-        except: return 0.0
+            ratios = []
+            for ch_idx in [C3_INDEX, C4_INDEX]:
+                if ch_idx >= epoch.shape[0]:
+                    continue
+                ch_data = epoch[ch_idx]
+                if np.all(ch_data == 0):
+                    continue
+                f, pxx = welch(ch_data, fs=fs, nperseg=min(len(ch_data), int(fs)))
+                theta = np.mean(pxx[(f>=4) & (f<=8)])
+                alpha = np.mean(pxx[(f>=8) & (f<=13)])
+                beta  = np.mean(pxx[(f>=13) & (f<=30)])
+                ratios.append(theta / (alpha + beta + 1e-6))
+            return float(np.mean(ratios)) if ratios else 0.0
+        except Exception: return 0.0
 
     # ── Classification: MOABB Riemannian Pipeline (Primary) ──────────
     def classify_moabb(self, raw_dict):
@@ -269,7 +282,10 @@ class RealtimePredictor:
             fs = raw_dict.get("_sfreq", 160)
             n_ch = epoch_arr.shape[0]
 
-            if n_ch >= 64:
+            if n_ch == N_MOTOR_CHANNELS:
+                # 21-channel BioAmp bridge: only C3 and C4 have real data
+                motor_indices = [C3_INDEX, C4_INDEX]
+            elif n_ch >= 64:
                 motor_indices = [7, 9, 11, 5, 13]
             elif n_ch >= 32:
                 motor_indices = [3, 5, 7]
@@ -359,8 +375,28 @@ class RealtimePredictor:
                     if self.session_age < 5:
                         self.last_command = "CALIBRATING"
                         self.broadcast_data.update({"command": "IDLE", "signal": "WARMUP"})
-                        attn_val = features[5]  # attention index in 5-band layout
-                        self.baseline_attention_values.append(attn_val)
+                        # Compute beta/alpha ratio from raw epoch (not the pre-computed
+                        # attention field, which is 0.0 when data comes from bridge_bioamp)
+                        raw_epoch = raw.get("_raw_epoch")
+                        if raw_epoch is not None:
+                            epoch_arr = np.array(raw_epoch)
+                            fs = raw.get("_sfreq", 160)
+                            warmup_ratios = []
+                            for ch_idx in [C3_INDEX, C4_INDEX]:
+                                if ch_idx >= epoch_arr.shape[0]:
+                                    continue
+                                ch_data = epoch_arr[ch_idx]
+                                if np.all(ch_data == 0):
+                                    continue
+                                nperseg = min(len(ch_data), int(fs))
+                                if nperseg < 8:
+                                    continue
+                                f, psd = welch(ch_data, fs=fs, nperseg=nperseg)
+                                alpha = np.mean(psd[(f >= 8) & (f <= 13)])
+                                beta  = np.mean(psd[(f >= 13) & (f <= 30)])
+                                warmup_ratios.append(np.log10((beta + 1e-12) / (alpha + 1e-12)))
+                            if warmup_ratios:
+                                self.baseline_attention_values.append(float(np.mean(warmup_ratios)))
                         # Also collect model probabilities during warmup for adaptive threshold
                         if self.moabb_pipeline is not None:
                             warmup_result = self.classify_moabb(raw)
@@ -376,12 +412,13 @@ class RealtimePredictor:
                         # Set adaptive threshold from warmup probability distribution
                         if len(self.warmup_probs) > 3:
                             sorted_probs = sorted(self.warmup_probs)
-                            # Threshold at 75th percentile of resting-state forward probabilities
-                            idx_75 = int(len(sorted_probs) * 0.75)
-                            self.adaptive_threshold = max(0.50, min(0.70, sorted_probs[idx_75]))
+                            # Threshold at 90th percentile of resting-state forward probabilities
+                            # (raised from 75th for wheelchair safety — reduces false positives)
+                            idx_90 = int(len(sorted_probs) * 0.90)
+                            self.adaptive_threshold = max(0.60, min(0.75, sorted_probs[idx_90]))
                             print(f"[ADAPT] Adaptive FORWARD threshold: {self.adaptive_threshold:.3f} (from {len(self.warmup_probs)} warmup predictions)")
                         else:
-                            self.adaptive_threshold = 0.50
+                            self.adaptive_threshold = 0.60
                             print(f"[ADAPT] Using default threshold: {self.adaptive_threshold:.2f}")
 
                     # ── Classification: MOABB first, BioSensor fallback ──

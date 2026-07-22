@@ -9,6 +9,8 @@ from rich.table import Table
 from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
 from scipy.signal import welch
 
+from config import MOTOR_CHANNEL_NAMES, C3_INDEX, C4_INDEX
+
 console = Console()
 
 ROOT = Path(__file__).resolve().parent
@@ -116,10 +118,9 @@ class Calibrator:
             return None
         return None
 
-    def compute_bandpower(self, data, sfreq, band):
+    def compute_bandpower(self, data, sfreq, band, channel_index):
         """Compute average power in a specific frequency band using Welch's method."""
-        # Using channel 0 (which is C3 or the raw bioamp channel)
-        ch_data = np.array(data)[0] 
+        ch_data = np.array(data)[channel_index] 
         f, Pxx = welch(ch_data, fs=sfreq, nperseg=min(len(ch_data), int(sfreq)))
         idx_band = np.logical_and(f >= band[0], f <= band[1])
         return np.mean(Pxx[idx_band])
@@ -172,7 +173,14 @@ class Calibrator:
         if "REST" in stage_name.upper():
             console.print("Instruction: Relax your body, keep your eyes open, and look straight ahead. Clear your mind.")
         elif "FORWARD" in stage_name.upper():
-            console.print("Instruction: Imagine pushing a heavy door forward with your right hand. Focus intensely.")
+            console.print("Instruction: Imagine pushing forward "
+                           "with BOTH FEET simultaneously, as if "
+                           "pressing two pedals evenly. Keep the "
+                           "sensation symmetric on both sides.")
+        elif "LEFT" in stage_name.upper():
+            console.print("Instruction: Imagine repeatedly clenching your LEFT fist.")
+        elif "RIGHT" in stage_name.upper():
+            console.print("Instruction: Imagine repeatedly clenching your RIGHT fist.")
         elif "CLOSED" in stage_name.upper():
             console.print("Instruction: Close your eyes and take deep breaths. Fully relax.")
         
@@ -255,6 +263,11 @@ class Calibrator:
         console.print()
         console.print(table)
         console.print()
+        console.print("[dim]Note: Fatigue Threshold and Beta "
+                      "Reactivity are computed and saved for a "
+                      "planned future feature — bridge_bioamp.py "
+                      "does not yet act on them.[/dim]")
+        console.print()
         console.print(
             "[bold green]You are ready to run predict_realtime.py[/bold green]"
         )
@@ -275,8 +288,10 @@ class Calibrator:
         self.check_signal_prerequisites()
 
         # Stages
-        rest_packets = self.record_stage("BASELINE (Rest)", 15)
-        fwd_packets  = self.record_stage("FORWARD (Motor Imagery)", 15)
+        rest_packets = self.record_stage("BASELINE (Rest)", 30)
+        fwd_packets  = self.record_stage("FORWARD (Motor Imagery)", 20)
+        left_packets = self.record_stage("LEFT (Left Hand Imagery)", 15)
+        right_packets= self.record_stage("RIGHT (Right Hand Imagery)", 15)
         eyes_closed  = self.record_stage("DEEP REST (Eyes Closed)", 15)
         
         console.print("\n[cyan]Analyzing brainwaves and calculating thresholds...[/cyan]")
@@ -288,16 +303,33 @@ class Calibrator:
             powers = []
             for p in packets:
                 try:
-                    pwr = self.compute_bandpower(p["_raw_epoch"], self.sfreq, bands[band_key])
-                    if not np.isnan(pwr): powers.append(pwr)
+                    pwr_c3 = self.compute_bandpower(p["_raw_epoch"], self.sfreq, bands[band_key], C3_INDEX)
+                    pwr_c4 = self.compute_bandpower(p["_raw_epoch"], self.sfreq, bands[band_key], C4_INDEX)
+                    if not np.isnan(pwr_c3): powers.append(pwr_c3)
+                    if not np.isnan(pwr_c4): powers.append(pwr_c4)
                 except Exception:
                     pass
             return float(np.mean(powers)) if powers else 1.0
 
-        # Calculate baselines
+        def avg_band_channel(packets, band_key, ch_index):
+            powers = []
+            for p in packets:
+                try:
+                    pwr = self.compute_bandpower(p["_raw_epoch"], self.sfreq, bands[band_key], ch_index)
+                    if not np.isnan(pwr): powers.append(pwr)
+                except Exception: pass
+            return float(np.mean(powers)) if powers else 1.0
+
+        # Calculate combined baselines (for legacy compatibility)
         rest_alpha = avg_band(rest_packets, 'alpha')
         rest_beta  = avg_band(rest_packets, 'beta')
         rest_theta = avg_band(rest_packets, 'theta')
+        
+        # Calculate per-hemisphere baselines
+        rest_alpha_c3 = avg_band_channel(rest_packets, 'alpha', C3_INDEX)
+        rest_alpha_c4 = avg_band_channel(rest_packets, 'alpha', C4_INDEX)
+        rest_beta_c3  = avg_band_channel(rest_packets, 'beta', C3_INDEX)
+        rest_beta_c4  = avg_band_channel(rest_packets, 'beta', C4_INDEX)
         
         fwd_beta = avg_band(fwd_packets, 'beta')
         
@@ -307,9 +339,13 @@ class Calibrator:
             "baseline_alpha": rest_alpha,
             "baseline_beta": rest_beta,
             "baseline_theta": rest_theta,
-            "fatigue_threshold": (rest_theta / (rest_alpha + rest_beta)) * 1.5, # 50% above baseline is fatigue
-            "forward_beta_multiplier": (fwd_beta / rest_beta) if rest_beta != 0 else 1.2,
-            "moabb_confidence_threshold": 0.75, # Starting adaptive threshold
+            "baseline_alpha_c3": rest_alpha_c3,
+            "baseline_alpha_c4": rest_alpha_c4,
+            "baseline_beta_c3": rest_beta_c3,
+            "baseline_beta_c4": rest_beta_c4,
+            "fatigue_threshold": (rest_theta / (rest_alpha + rest_beta + 1e-6)) * 1.5,  # NOTE: not yet read by bridge_bioamp.py — planned for future fatigue-gating feature
+            "forward_beta_multiplier": (fwd_beta / rest_beta) if rest_beta != 0 else 1.2,  # NOTE: not yet read by bridge_bioamp.py
+            "moabb_confidence_threshold": 0.75,  # NOTE: not yet read by bridge_bioamp.py
             "calibration_date": time.strftime("%Y-%m-%d %H:%M:%S")
         }
         

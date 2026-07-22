@@ -24,6 +24,7 @@ STRIDE = 5              # 50% overlap for 10Hz (approx 0.5s)
 N_FEATURES_RAW = 8      # 5 bands + attention + meditation + blink
 N_FEATURES_ENGINEERED = 18
 N_CLASSES = 5
+N_CLASSES_MOABB = 2
 CLASS_NAMES = {
     0: "IDLE",
     1: "FORWARD",
@@ -72,3 +73,13 @@ COMMANDS = CLASS_NAMES
 EMG_THRESHOLD_UV = 500.0
 ERD_THRESHOLD = 0.15
 ERD_SYMMETRY_TOLERANCE = 0.30
+
+# Motor Imagery Channel Definitions
+MOTOR_CHANNEL_NAMES = [
+    'Fc5.', 'Fc3.', 'Fc1.', 'Fcz.', 'Fc2.', 'Fc4.', 'Fc6.',
+    'C5..', 'C3..', 'C1..', 'Cz..', 'C2..', 'C4..', 'C6..',
+    'Cp5.', 'Cp3.', 'Cp1.', 'Cpz.', 'Cp2.', 'Cp4.', 'Cp6.',
+]
+N_MOTOR_CHANNELS = len(MOTOR_CHANNEL_NAMES)
+C3_INDEX = MOTOR_CHANNEL_NAMES.index('C3..')
+C4_INDEX = MOTOR_CHANNEL_NAMES.index('C4..')

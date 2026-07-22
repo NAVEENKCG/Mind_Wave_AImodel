@@ -67,6 +67,14 @@ if not cache_path.exists():
             f.write(resp.read())
 
 raw = mne.io.read_raw_edf(cache_path, preload=True, verbose=False)
+
+# Pick only the motor channels the model was trained on
+motor_ch_names = stats['motor_channels']
+try:
+    raw.pick_channels(motor_ch_names, ordered=True)
+except Exception:
+    pass
+
 raw.filter(1, 45, verbose=False)
 sfreq = raw.info['sfreq']
 
@@ -124,6 +132,14 @@ if not cache_path_r01.exists():
             f.write(resp.read())
 
 raw = mne.io.read_raw_edf(cache_path_r01, preload=True, verbose=False)
+
+# Pick only the motor channels the model was trained on
+motor_ch_names = stats['motor_channels']
+try:
+    raw.pick_channels(motor_ch_names, ordered=True)
+except Exception:
+    pass
+
 raw.filter(1, 45, verbose=False)
 data = raw.get_data()
 sfreq = raw.info['sfreq']

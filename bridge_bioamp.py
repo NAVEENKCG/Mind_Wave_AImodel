@@ -23,21 +23,13 @@ import socket
 import json
 import time
 import numpy as np
-from scipy.signal import butter, lfilter, welch
+from scipy.signal import butter, lfilter, welch, sosfilt
 import os
-
-MOTOR_CHANNEL_NAMES = [
-    'Fc5.', 'Fc3.', 'Fc1.', 'Fcz.', 'Fc2.', 'Fc4.', 'Fc6.',
-    'C5..', 'C3..', 'C1..', 'Cz..', 'C2..', 'C4..', 'C6..',
-    'Cp5.', 'Cp3.', 'Cp1.', 'Cpz.', 'Cp2.', 'Cp4.', 'Cp6.',
-]
-N_MOTOR_CHANNELS = len(MOTOR_CHANNEL_NAMES)  # 21, computed not hardcoded
-C3_INDEX = MOTOR_CHANNEL_NAMES.index('C3..')  # 8
-C4_INDEX = MOTOR_CHANNEL_NAMES.index('C4..')  # 12
 
 from config import (
     SERIAL_PORT, BAUD_RATE, EMG_THRESHOLD_UV,
-    ERD_THRESHOLD, ERD_SYMMETRY_TOLERANCE, MODELS_DIR
+    ERD_THRESHOLD, ERD_SYMMETRY_TOLERANCE, MODELS_DIR,
+    MOTOR_CHANNEL_NAMES, N_MOTOR_CHANNELS, C3_INDEX, C4_INDEX
 )
 from logger_orbit import logger as orbit_logger
 
@@ -61,18 +53,25 @@ try:
 except Exception as e:
     print(f"⚠ Could not load personal profile for baseline power: {e}")
 
-if BASELINE_POWER_C3 == 1.0:
+MIN_VALID_BASELINE = 1e-6
+if BASELINE_POWER_C3 == 1.0 or BASELINE_POWER_C3 < MIN_VALID_BASELINE:
     print("⚠️  WARNING: personal_profile.json baseline_alpha/"
-          "baseline_beta not found or using default fallback "
-          "(1.0). ERD calculations will be meaningless until "
-          "you run calibrate.py successfully. Do not trust "
-          "classification output until this warning is gone.")
+          "baseline_beta appears invalid (missing, default, "
+          "or near-zero — possibly from a dead/disconnected "
+          "channel during calibration). ERD calculations will "
+          "be unstable or meaningless until you re-run "
+          "calibrate.py with good electrode contact. Do not "
+          "trust classification output until this warning is gone.")
 
 def butter_bandpass(lowcut, highcut, fs, order=5):
     nyq = 0.5 * fs
     low = lowcut / nyq
     high = highcut / nyq
     return butter(order, [low, high], btype='band')
+
+def butter_bandpass_sos(lowcut, highcut, fs, order=5):
+    nyq = 0.5 * fs
+    return butter(order, [lowcut/nyq, highcut/nyq], btype='band', output='sos')
 
 def bandpass_filter(data, lowcut, highcut, fs, order=5):
     b, a = butter_bandpass(lowcut, highcut, fs, order=order)
@@ -101,6 +100,8 @@ def compute_erd(live_power, baseline_power):
     Returns standard ERD percentage formula. Positive value means 
     power dropped below baseline (desynchronization).
     """
+    if baseline_power < 1e-6:
+        return 0.0  # invalid baseline — treat as no ERD, fail safe to IDLE
     return (baseline_power - live_power) / baseline_power
 
 def classify_direction(c3_erd, c4_erd, erd_threshold, symmetry_tolerance):
@@ -135,6 +136,11 @@ class BioAmpBridge:
         self.raw_buffer_c3 = []
         self.raw_buffer_c4 = []
         self.chunk_size = CHUNK_SIZE
+        
+        # Stateful zero-phase equivalent filtering to avoid startup transients
+        self.sos = butter_bandpass_sos(1.0, 45.0, SFREQ)
+        self.zi_c3 = np.zeros((self.sos.shape[0], 2))
+        self.zi_c4 = np.zeros((self.sos.shape[0], 2))
         
         try:
             self.ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.1)
@@ -183,9 +189,9 @@ class BioAmpBridge:
         # 1. EMG Spike Detection (Jaw Clench)
         is_emg_spike = detect_emg_spike(chunk_c3, chunk_c4)
         
-        # 2. Filter for EEG
-        filtered_c3 = bandpass_filter(chunk_c3, 1.0, 45.0, SFREQ)
-        filtered_c4 = bandpass_filter(chunk_c4, 1.0, 45.0, SFREQ)
+        # 2. Filter for EEG (stateful, avoids transient)
+        filtered_c3, self.zi_c3 = sosfilt(self.sos, chunk_c3, zi=self.zi_c3)
+        filtered_c4, self.zi_c4 = sosfilt(self.sos, chunk_c4, zi=self.zi_c4)
         
         # Prepare payload
         epoch = np.zeros((N_MOTOR_CHANNELS, len(filtered_c3)))
