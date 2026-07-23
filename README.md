@@ -8,7 +8,7 @@
 
 **ORBIT AI** is a state-of-the-art, open-source **Brain-Computer Interface** designed for medical wheelchair control. It uses a **Hybrid BCI-EMG** architecture that fuses clinical-grade neural decoding (EEG) with high-speed muscle signal detection (EMG) for maximum safety and reliability.
 
-> **83.71% accuracy** on IDLE vs. FORWARD classification using 21-channel FBCSP+LDA pipeline with corrected cross-validation · **< 100ms** emergency stop via jaw-clench EMG detection · **45-second** personal calibration
+> **83.71% accuracy** on IDLE vs. FORWARD classification using 21-channel FBCSP+LDA pipeline with corrected cross-validation · **< 100ms** emergency stop via jaw-clench EMG detection · **95-second** comprehensive personal calibration
 
 ---
 
@@ -59,7 +59,7 @@ python demo_mode.py
 | Layer | Technology |
 |-------|-----------|
 | **Hardware** | BioAmp EXG Pill (Gain ~1000×) / AD8232 (budget alt.) + ESP32/Arduino |
-| **Signal Processing** | MNE-Python (FIR bandpass 1–45 Hz) + SciPy (Welch PSD) |
+| **Signal Processing** | Stateful zero-phase sosfilt (1–45 Hz) + SciPy (Welch PSD) |
 | **AI Core — Primary** | MOABB + PyRiemann (Covariances → Tangent Space → LDA/SVM/MDM) |
 | **AI Core — Legacy** | PyTorch CNN-LSTM (Conv1D → BiLSTM → FC) |
 | **Safety** | 5-Layer Gate Pipeline (Signal Quality · Warm-Up · Fatigue · EMG Stop · Voting) |
@@ -213,7 +213,7 @@ The `predict_realtime.py` engine implements sequential security checks before an
 | **Cross-Validation** | 5-Fold Stratified | Best pipeline auto-selected |
 | **Inference Latency** | < 100ms | Socket → prediction → display |
 | **EMG Stop Latency** | < 100ms | Jaw-clench → STOP command |
-| **Calibration Time** | 45 seconds | Personal profiling session |
+| **Calibration Time** | 95 seconds | Personal profiling session (includes L/R imagery) |
 
 ### Overall Project Benchmarks
 | Metric | Value |
@@ -267,7 +267,7 @@ Mind_Wave_AImodel/
 ├── model.py                        # CNN-LSTM neural network architecture
 ├── train.py                        # Deep learning trainer (legacy)
 ├── train_moabb.py                  # Riemannian pipeline trainer (primary)
-├── calibrate.py                    # 45-second personal profiler
+├── calibrate.py                    # 95-second personal profiler
 ├── collect_data.py                 # Personal data collection
 ├── fine_tune.py                    # Transfer learning fine-tuning
 │
