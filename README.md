@@ -12,6 +12,51 @@
 
 ---
 
+## 💡 Product Ideology
+
+### The Problem We Refuse to Ignore
+
+Approximately **5.4 million people** in the United States alone live with some form of paralysis. Worldwide, hundreds of millions of individuals with conditions like ALS, spinal cord injuries, cerebral palsy, and locked-in syndrome are denied the most basic human freedom — **the freedom to move**.
+
+Traditional assistive technologies — joysticks, sip-and-puff controllers, eye-tracking systems — all demand some level of residual physical ability. For those with the most severe impairments, these solutions simply **do not exist**. The mind remains sharp, but the body cannot respond.
+
+**ORBIT AI exists because thought should be enough.**
+
+### Our Vision
+
+> *A world where no conscious mind is trapped in a motionless body — where the mere intention to move is sufficient to move.*
+
+### Our Mission
+
+To build an **open-source, medically safe, and universally accessible** Brain-Computer Interface that translates raw neural signals into reliable wheelchair commands — and to make it available to **everyone**, not just those who can afford proprietary clinical systems costing $50,000+.
+
+### Core Design Principles
+
+| Principle | What It Means in Practice |
+| :--- | :--- |
+| 🛡️ **Safety Above All** | No wheelchair command is ever issued without passing a 5-layer security pipeline. A single jaw clench halts everything in under 100ms. The system would rather **do nothing** than do the wrong thing. |
+| ♿ **Radical Accessibility** | The entire system costs under **₹5,000** (~$60) in hardware. The software is MIT-licensed and runs on consumer laptops. No hospital visit required. No proprietary lock-in. |
+| 🧬 **Open Science, Open Code** | Every algorithm, every dataset reference, every training pipeline is public. We publish our research paper ([RND_PAPER.md](./RND_PAPER.md)) alongside our code — because breakthroughs locked behind paywalls don't save lives. |
+| 🧠 **The Brain Adapts, So Must We** | No two brains are identical. ORBIT AI trains on a "Universal Brain" model from clinical datasets, then personalizes through a 95-second calibration. The system adapts to **you**, not the other way around. |
+| 🤝 **Human Dignity First** | This is not a tech demo. Every design decision — from the fatigue monitor that slows the chair when you're tired, to the warm-up gate that waits until your brain signals stabilize — treats the user as a **person**, not a data source. |
+| ⚡ **Hybrid Intelligence** | We don't rely on a single signal. EEG provides the intention. EMG provides the emergency brake. AI provides the pattern recognition. Redundancy is not overhead — it is **survival engineering**. |
+
+### The North Star
+
+ORBIT AI is a stepping stone. Today, we control a virtual wheelchair with two commands. Tomorrow:
+
+- **4-directional navigation** (Forward, Left, Right, Stop) from pure thought
+- **Real-world motor integration** via CAN bus or ROS2
+- **Edge deployment** on Raspberry Pi / Jetson Nano for portable, offline use
+- **Multi-modal fusion** with eye-tracking and head gestures for command richness
+- **Clinical trials** with rehabilitation centers and hospitals
+
+We measure success not in accuracy percentages, but in the number of people who regain the ability to **choose where they go**.
+
+> *"The measure of a technology is not what it can do, but who it sets free."*
+
+---
+
 ## 📐 Hybrid Command Mapping
 
 We use a **"Safety-First"** dual-modality strategy — mental tasks for direction, jaw clench for instant stop:
