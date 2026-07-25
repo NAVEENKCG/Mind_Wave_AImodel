@@ -37,11 +37,14 @@ if not _log.handlers:
     _log.addHandler(_handler)
 
 
+from config import CLASS_NAMES
+
 class OrbitLogger:
     """Thread-safe CSV session logger for ORBIT AI BCI pipeline."""
 
-    # Commands tracked in the summary breakdown
-    _TRACKED_COMMANDS = ("IDLE", "FORWARD", "LEFT", "RIGHT", "PUSH", "PULL")
+    # Commands tracked in the summary breakdown — derived from config.CLASS_NAMES
+    # so this list stays in sync automatically (currently IDLE, FORWARD, LEFT, RIGHT, STOP).
+    _TRACKED_COMMANDS = tuple(CLASS_NAMES.values())
 
     def __init__(self) -> None:
         self.session_id: str = ""

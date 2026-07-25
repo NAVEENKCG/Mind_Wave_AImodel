@@ -1,3 +1,13 @@
+"""
+LEGACY PIPELINE — NOT part of the current MOABB/Riemannian
+production pipeline (see train_moabb.py, bridge_bioamp.py).
+This script produces X_pretrained.npy / y_pretrained.npy
+using a single-channel Fp1, TGAM-style 8-band feature set
+that predates the 21-channel motor-cortex architecture.
+Kept for historical reference only. Do not use its output
+with moabb_csp_lda.pkl or bridge_bioamp.py.
+"""
+
 import mne
 import numpy as np
 import pandas as pd
@@ -5,7 +15,7 @@ import openneuro
 import logging
 from pathlib import Path
 from typing import List, Dict
-from config import DATA_DIR, N_FEATURES_RAW, SEED
+from config import DATA_DIR, N_FEATURES_RAW, SEED, TRAIN_WINDOW_SIZE
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

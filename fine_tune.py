@@ -1,3 +1,12 @@
+"""
+LEGACY PIPELINE — NOT part of the current MOABB/Riemannian
+production pipeline (see train_moabb.py, bridge_bioamp.py).
+fine_tune_on_personal_data() operates on the older CNN-LSTM
+architecture (model.py's EEGClassifier_CNN_LSTM), not the
+current MOABB CSP+LDA pipeline. Kept for historical reference
+only.
+"""
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -18,33 +27,18 @@ logger = logging.getLogger(__name__)
 
 def pretrain_on_external_data():
     """
-    Step 1: Train the model on large-scale OpenNeuro data.
-    If labels aren't available, this could be Autoencoder-based (Self-Supervised).
-    Here we assume we have labels for a general task.
+    INCOMPLETE STUB — not a real pretraining implementation.
+    Currently generates random labels and saves an UNTRAINED
+    model. Do not call this in production. Raises
+    NotImplementedError until a real training loop is added.
     """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    try:
-        X_pre = np.load(DATA_DIR / "X_pretrained.npy")
-        # For demo, creating dummy labels if they don't exist
-        y_pre = np.random.randint(0, N_CLASSES, len(X_pre))
-    except FileNotFoundError:
-        logger.error("X_pretrained.npy not found. Run fetch_and_process_openneuro.py first.")
-        return
-
-    # Convert to windows if not already
-    # X_pre is [samples, features] - we need [samples, windows, features]
-    # Assuming the processing script already handles windowing or we do it here
-    
-    model = get_model(USE_CNN_LSTM).to(device)
-    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    criterion = nn.CrossEntropyLoss()
-
-    logger.info("Starting Pre-training on OpenNeuro data...")
-    # (Training loop omitted for brevity, similar to train.py)
-    
-    torch.save(model.state_dict(), MODELS_DIR / "openneuro_base_model.pth")
-    logger.info("Base model saved to models/openneuro_base_model.pth")
+    raise NotImplementedError(
+        "pretrain_on_external_data() is a stub — it currently "
+        "trains on random labels with no real training loop. "
+        "Implement a real training loop before using, or use "
+        "train_moabb.py's pipeline instead, which is the "
+        "current production training path."
+    )
 
 def fine_tune_on_personal_data():
     """

@@ -187,8 +187,7 @@ def run_system_diagnostics(stats):
     print(f"| Hardware    ESP32        {com_status.ljust(10)} |")
     
     # Signal
-    sig_status = "OK GOOD"
-    print(f"| Signal      TGAM         {sig_status.ljust(10)} |")
+    print(f"| Signal      BioAmp EXG   {'?  UNVERIFIED'.ljust(10)} |")
     
     # Model
     model_acc = "87.3%"
@@ -198,9 +197,10 @@ def run_system_diagnostics(stats):
     print(f"| Model       best_model   {model_acc_str.ljust(10)} |")
     
     # Data
-    data_status = "OK"
-    print(f"| Data        30,754 smp   {data_status.ljust(10)} |")
-    
+    data_count = "UNKNOWN"
+    if stats and 'subjects' in stats:
+        data_count = f"{len(stats['subjects'])} subj"
+    print(f"| Data        {data_count.ljust(11)} {'--'.ljust(10)} |")    
     # Python
     py_version = platform.python_version()
     py_status = "OK" if sys.version_info >= (3, 8) else "Low"
