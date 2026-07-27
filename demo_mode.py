@@ -101,8 +101,12 @@ def launch_simulator() -> subprocess.Popen:
     if platform.system() == "Windows":
         creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
 
+    # Use the cached EDF directly to skip the interactive prompt and
+    # avoid an EOFError fallback path (stdin is PIPE, no user input).
+    cached_edf = str(ROOT / "data" / "edf_cache" / "S001R04.edf")
+
     proc = subprocess.Popen(
-        [PYTHON, SIM_SCRIPT],
+        [PYTHON, SIM_SCRIPT, "--edf", cached_edf],
         stdin=subprocess.PIPE,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

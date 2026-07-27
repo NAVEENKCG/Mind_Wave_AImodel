@@ -147,16 +147,17 @@ class RealtimePredictor:
                 self.connected_clients.remove(websocket)
 
         def process_request(connection, request):
-            import http
+            from websockets.http11 import Response
             upgrade_header = request.headers.get("Upgrade", "").lower()
             if upgrade_header != "websocket":
+                from http import HTTPStatus
                 body = json.dumps({
                     "status": "online",
                     "service": "ORBIT AI BCI WebSocket Server",
                     "websocket_url": "ws://localhost:8765",
                     "note": "This port is for WebSocket connections. To view the dashboard, open the Next.js app in your browser (e.g. http://localhost:3000)."
-                })
-                return connection.respond(http.HTTPStatus.OK, body)
+                }).encode()
+                return Response(HTTPStatus.OK, "OK", websockets.Headers([("Content-Type", "application/json")]), body)
             return None
 
         async def main():

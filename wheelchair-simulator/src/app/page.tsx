@@ -195,7 +195,7 @@ export default function Home() {
             className="text-sm max-w-md"
             style={{ color: "var(--text-secondary)" }}
           >
-            EEG-controlled simulation via NeuroSky TGAM · MOABB CSP+LDA AI Model
+            EEG-controlled simulation via BioAmp EXG Pill · MOABB CSP+LDA AI Model
           </motion.p>
         </motion.header>
 
