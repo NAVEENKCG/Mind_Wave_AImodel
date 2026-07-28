@@ -146,6 +146,85 @@ flowchart TD
 
 ---
 
+## 🧬 Algorithm & Model Architecture
+
+ORBIT AI uses **three classification engines** — a primary Riemannian pipeline, a legacy CNN-LSTM, and a physics-based fallback. The system auto-selects the best available engine at runtime.
+
+### 1. Riemannian FBCSP + LDA (Primary — `train_moabb.py`)
+
+The deployed model uses **Riemannian geometry** operating on EEG covariance matrices, **not a neural network**. This is the gold standard for motor imagery BCI.
+
+**Pipeline flow:**
+```
+Raw EEG (21ch × 1s) → Filter Bank (5 sub-bands: δ, θ, α, β, γ)
+  → Covariance Matrices (Ledoit-Wolf shrinkage)
+  → Riemannian Tangent Space projection
+  → Linear Discriminant Analysis (LDA)
+  → Platt-calibrated probability
+```
+
+**Key details:**
+- **Library:** [PyRiemann](https://pyriemann.readthedocs.io) — covariance matrices are treated as points on the SPD (Symmetric Positive Definite) manifold
+- **Feature extraction:** Filter-Bank CSP (FBCSP) — splits signal into 5 frequency bands (0.5–4, 4–8, 8–13, 13–30, 30–50 Hz), computes tangent-space features per band, concatenates
+- **Architecture tournament:** Three Riemannian architectures compete in 5-fold CV — MDM, TS+LDA, and FBCSP+LDA — the winner is auto-selected
+- **Training data:** PhysioNet EEGMMIDB, 10 subjects, 21 motor-cortex channels (sensorimotor strip: FC5–FC6, C5–C6, CP5–CP6)
+- **Augmentation:** Time-jitter (±25 samples), applied **inside** CV folds only (leakage-free)
+- **Calibration:** Platt scaling on a held-out 15% set for well-calibrated probabilities
+- **Output:** Binary — IDLE (0) vs FORWARD (1), 83.71% CV accuracy
+
+### 2. CNN-LSTM Hybrid (Legacy — `model.py`)
+
+A deep learning model exists but is **not used** in the real-time inference pipeline. It was the original approach before the Riemannian pipeline was adopted.
+
+**Architecture:**
+```
+Input (batch, 30, 18) → Conv1D(18→64, k=3) → BN → ReLU → MaxPool
+  → Conv1D(64→128, k=3) → BN → ReLU
+  → BiLSTM(128→64, 2 layers) → Global Avg Pool
+  → BN → Dropout → FC(128→64) → FC(64→n_classes)
+```
+
+**Key details:**
+- **Parameters:** ~200K (vs ~2,500 for a comparable EEGNet)
+- **Input:** 18 engineered features (8 band powers + attention + meditation + blink + 7 derived ratios) over 30 timesteps
+- **Trained by:** `train.py` on personal data collected via `collect_data.py`
+- **Status:** Model file exists (`models/best_model.pth`) but `predict_realtime.py` does not load it
+
+### 3. ERD-Based Classification (BioAmp Hardware — `bridge_bioamp.py`)
+
+For 2-channel BioAmp EXG Pill hardware, a signal-processing approach classifies direction using **Event-Related Desynchronization (ERD)**:
+
+```
+C3/C4 raw → Bandpass (1–45 Hz, stateful SOS)
+  → Welch PSD (Mu+Beta: 8–30 Hz)
+  → ERD% = (baseline − live) / baseline
+  → 4-way threshold classifier (FORWARD / LEFT / RIGHT / IDLE)
+```
+
+**Key details:**
+- **No ML model** — pure signal processing with calibrated thresholds
+- **EMG fast-path:** Jaw clench detection on every sample (< 100ms latency), bypasses the 1-second epoch accumulation
+- **FORWARD inference:** Bilateral symmetry — when C3 and C4 both desynchronize equally (no Cz channel available)
+
+### 4. BioSensor Fallback (`predict_realtime.py`)
+
+If no trained MOABB model is found, falls back to a physics-based **Beta/Alpha ratio** threshold. This is the simplest classifier and requires no training.
+
+### ⚠️ Known Limitation: Channel Mismatch on Real Hardware
+
+The Riemannian model is trained on 21-channel data, but the BioAmp bridge only provides 2 real channels (C3 and C4), zero-padding the remaining 19. This creates **degenerate covariance matrices** that violate the SPD manifold assumption. When using real hardware through `predict_realtime.py`, the Riemannian model's predictions are unreliable. The ERD classifier in `bridge_bioamp.py` handles this correctly. A future upgrade to **EEGNet** (a channel-agnostic CNN designed for BCI) is planned to unify both paths.
+
+### Algorithm Selection Summary
+
+| Engine | Used When | Channels | Accuracy | File |
+|--------|-----------|----------|----------|------|
+| **Riemannian FBCSP+LDA** | MOABB model exists + ≥21 channels | 21 | 83.71% | `train_moabb.py` |
+| **ERD Threshold** | Real BioAmp hardware | 2 (C3, C4) | ~70% (estimated) | `bridge_bioamp.py` |
+| **BioSensor Fallback** | No trained model available | Any | ~60% | `predict_realtime.py` |
+| **CNN-LSTM** | Not currently active | 18 features | Untested | `model.py` + `train.py` |
+
+---
+
 ## 🚀 Getting Started
 
 ### 1. Installation
