@@ -1,14 +1,14 @@
 # 🧠 ORBIT AI — Universal BCI System (v2.0)
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.0-red?logo=pytorch)
+![PyRiemann](https://img.shields.io/badge/PyRiemann-Riemannian_BCI-orange)
 ![MOABB](https://img.shields.io/badge/MOABB-1.1-green)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-**ORBIT AI** is a state-of-the-art, open-source **Brain-Computer Interface** designed for medical wheelchair control. It uses a **Hybrid BCI-EMG** architecture that fuses clinical-grade neural decoding (EEG) with high-speed muscle signal detection (EMG) for maximum safety and reliability.
+**ORBIT AI** is an open-source **Brain-Computer Interface** designed for medical wheelchair control. It uses a **Hybrid BCI-EMG** architecture — EEG-based neural decoding for movement commands, and EMG-based jaw-clench detection for instant emergency stop.
 
-> **83.71% accuracy** on IDLE vs. FORWARD classification using 21-channel FBCSP+LDA pipeline with corrected cross-validation · **< 100ms** emergency stop via jaw-clench EMG detection · **95-second** comprehensive personal calibration
+> **83.71% accuracy** on IDLE vs. FORWARD classification using Riemannian FBCSP+LDA · **< 100ms** emergency stop via jaw-clench EMG · **95-second** personal calibration
 
 ---
 
@@ -41,20 +41,6 @@ To build an **open-source, medically safe, and universally accessible** Brain-Co
 | 🤝 **Human Dignity First** | This is not a tech demo. Every design decision — from the fatigue monitor that slows the chair when you're tired, to the warm-up gate that waits until your brain signals stabilize — treats the user as a **person**, not a data source. |
 | ⚡ **Hybrid Intelligence** | We don't rely on a single signal. EEG provides the intention. EMG provides the emergency brake. AI provides the pattern recognition. Redundancy is not overhead — it is **survival engineering**. |
 
-### The North Star
-
-ORBIT AI is a stepping stone. Today, we control a virtual wheelchair with two commands. Tomorrow:
-
-- **4-directional navigation** (Forward, Left, Right, Stop) from pure thought
-- **Real-world motor integration** via CAN bus or ROS2
-- **Edge deployment** on Raspberry Pi / Jetson Nano for portable, offline use
-- **Multi-modal fusion** with eye-tracking and head gestures for command richness
-- **Clinical trials** with rehabilitation centers and hospitals
-
-We measure success not in accuracy percentages, but in the number of people who regain the ability to **choose where they go**.
-
-> *"The measure of a technology is not what it can do, but who it sets free."*
-
 ---
 
 ## 📐 Hybrid Command Mapping
@@ -69,6 +55,8 @@ We use a **"Safety-First"** dual-modality strategy — mental tasks for directio
 | **IDLE** | 🧠 EEG | Relaxed state, eyes open | Alpha power dominance |
 | **STOP** | 💪 EMG | **Jaw clench (bite teeth)** | High-frequency spike >100μV |
 
+> **Note:** The current system classifies **2 commands** (IDLE vs. FORWARD). LEFT, RIGHT, and EMG-STOP are implemented in the hardware bridge (`bridge_bioamp.py`) but are not yet supported by the trained Riemannian model. See [Future Roadmap](#-future-roadmap) for the plan to expand to 4-class classification.
+
 ---
 
 ## 📋 Prerequisites
@@ -76,7 +64,7 @@ We use a **"Safety-First"** dual-modality strategy — mental tasks for directio
 - Python 3.10+
 - Node.js 18+ and npm (only required for the web dashboard)
 - For real hardware mode: BioAmp EXG Pill connected via USB, 
-  update SERIAL_PORT in config.py
+  update `SERIAL_PORT` in `config.py`
 
 ---
 
@@ -104,12 +92,13 @@ python demo_mode.py
 | Layer | Technology |
 |-------|-----------|
 | **Hardware** | BioAmp EXG Pill (Gain ~1000×) / AD8232 (budget alt.) + ESP32/Arduino |
-| **Signal Processing** | Stateful zero-phase sosfilt (1–45 Hz) + SciPy (Welch PSD) |
-| **AI Core — Primary** | MOABB + PyRiemann (Covariances → Tangent Space → LDA/SVM/MDM) |
-| **AI Core — Legacy** | PyTorch CNN-LSTM (Conv1D → BiLSTM → FC) |
+| **Signal Processing** | MNE-Python (FIR filtering 0.5–50 Hz) + SciPy (Welch PSD, Butterworth filters) |
+| **AI Core — Active** | PyRiemann (Covariances → Tangent Space → LDA) with FBCSP 5-band feature extraction |
+| **AI Core — Legacy** | PyTorch CNN-LSTM (Conv1D → BiLSTM → FC) — **not used in live inference** |
 | **Safety** | 5-Layer Gate Pipeline (Signal Quality · Warm-Up · Fatigue · EMG Stop · Voting) |
-| **Interface** | Real-time TUI dashboard with Python `Rich` |
-| **Diagnostics** | Session logging (100ms telemetry), auto-generated PDF reports |
+| **Interface — Terminal** | Real-time TUI dashboard with Python `Rich` |
+| **Interface — Web** | Next.js wheelchair simulator dashboard via WebSocket |
+| **Diagnostics** | Session logging (100ms telemetry), auto-generated reports |
 
 ---
 
@@ -140,75 +129,113 @@ flowchart TD
     style GATE fill:#4caf50,stroke:#333,stroke-width:2px,color:#fff
 ```
 
-> 📄 For detailed architecture diagrams and data pipeline flowcharts, see [visual_workflow.md](./visual_workflow.md)
->
 > 📄 For the full research paper with references, see [RND_PAPER.md](./RND_PAPER.md)
 
 ---
 
-## 🧬 Algorithm & Model Architecture
+## 🧬 What Algorithm Does ORBIT AI Currently Use?
 
-ORBIT AI uses **three classification engines** — a primary Riemannian pipeline, a legacy CNN-LSTM, and a physics-based fallback. The system auto-selects the best available engine at runtime.
+### The Active Pipeline: Riemannian FBCSP + LDA
 
-### 1. Riemannian FBCSP + LDA (Primary — `train_moabb.py`)
+ORBIT AI's **live inference system** (`predict_realtime.py` and `predict_websocket.py`) uses a **Riemannian Geometry** pipeline — not a neural network. This is the gold standard for motor imagery BCI because it generalizes across different users without retraining.
 
-The deployed model uses **Riemannian geometry** operating on EEG covariance matrices, **not a neural network**. This is the gold standard for motor imagery BCI.
-
-**Pipeline flow:**
-```
-Raw EEG (21ch × 1s) → Filter Bank (5 sub-bands: δ, θ, α, β, γ)
-  → Covariance Matrices (Ledoit-Wolf shrinkage)
-  → Riemannian Tangent Space projection
-  → Linear Discriminant Analysis (LDA)
-  → Platt-calibrated probability
-```
-
-**Key details:**
-- **Library:** [PyRiemann](https://pyriemann.readthedocs.io) — covariance matrices are treated as points on the SPD (Symmetric Positive Definite) manifold
-- **Feature extraction:** Filter-Bank CSP (FBCSP) — splits signal into 5 frequency bands (0.5–4, 4–8, 8–13, 13–30, 30–50 Hz), computes tangent-space features per band, concatenates
-- **Architecture tournament:** Three Riemannian architectures compete in 5-fold CV — MDM, TS+LDA, and FBCSP+LDA — the winner is auto-selected
-- **Training data:** PhysioNet EEGMMIDB, 10 subjects, 21 motor-cortex channels (sensorimotor strip: FC5–FC6, C5–C6, CP5–CP6)
-- **Augmentation:** Time-jitter (±25 samples), applied **inside** CV folds only (leakage-free)
-- **Calibration:** Platt scaling on a held-out 15% set for well-calibrated probabilities
-- **Output:** Binary — IDLE (0) vs FORWARD (1), 83.71% CV accuracy
-
-### 2. CNN-LSTM Hybrid (Legacy — `model.py`)
-
-A deep learning model exists but is **not used** in the real-time inference pipeline. It was the original approach before the Riemannian pipeline was adopted.
-
-**Architecture:**
-```
-Input (batch, 30, 18) → Conv1D(18→64, k=3) → BN → ReLU → MaxPool
-  → Conv1D(64→128, k=3) → BN → ReLU
-  → BiLSTM(128→64, 2 layers) → Global Avg Pool
-  → BN → Dropout → FC(128→64) → FC(64→n_classes)
-```
-
-**Key details:**
-- **Parameters:** ~200K (vs ~2,500 for a comparable EEGNet)
-- **Input:** 18 engineered features (8 band powers + attention + meditation + blink + 7 derived ratios) over 30 timesteps
-- **Trained by:** `train.py` on personal data collected via `collect_data.py`
-- **Status:** Model file exists (`models/best_model.pth`) but `predict_realtime.py` does not load it
-
-### 3. ERD-Based Classification (BioAmp Hardware — `bridge_bioamp.py`)
-
-For 2-channel BioAmp EXG Pill hardware, a signal-processing approach classifies direction using **Event-Related Desynchronization (ERD)**:
+**How it works — step by step:**
 
 ```
-C3/C4 raw → Bandpass (1–45 Hz, stateful SOS)
+Raw EEG (21 motor-cortex channels × 160 samples = 1 second)
+        │
+        ▼
+┌────────────────────────────────────────────┐
+│  1. FILTER BANK (FBCSP)                    │
+│     Splits signal into 5 frequency bands:  │
+│     δ (0.5–4 Hz), θ (4–8), α (8–13),      │
+│     β (13–30), γ (30–50)                   │
+└──────────────────┬─────────────────────────┘
+                   ▼
+┌────────────────────────────────────────────┐
+│  2. COVARIANCE MATRICES                    │
+│     Computes how each channel relates to   │
+│     every other (Ledoit-Wolf shrinkage)    │
+│     → 21×21 matrix per band                │
+└──────────────────┬─────────────────────────┘
+                   ▼
+┌────────────────────────────────────────────┐
+│  3. RIEMANNIAN TANGENT SPACE               │
+│     Projects curved manifold data onto     │
+│     flat Euclidean space for classification │
+└──────────────────┬─────────────────────────┘
+                   ▼
+┌────────────────────────────────────────────┐
+│  4. LDA CLASSIFIER                         │
+│     Draws a linear boundary to separate    │
+│     IDLE from FORWARD                      │
+│     + Platt-calibrated probability output  │
+└──────────────────┬─────────────────────────┘
+                   ▼
+             IDLE or FORWARD
+             (with confidence %)
+```
+
+**Why Riemannian over CNN-LSTM?**
+
+| Factor | Riemannian (active) | CNN-LSTM (legacy) |
+|--------|-------------------|-------------------|
+| **Cross-user generalization** | ✅ Excellent — works on new users | ❌ Overfits to training subjects |
+| **Calibration needed** | 95-second profile | Hours of personal data |
+| **Validated accuracy** | **83.71%** (5-fold CV, leakage-free) | **Untested** (never formally evaluated) |
+| **What it looks at** | Channel-to-channel relationships | Raw signal values over time |
+| **Inference speed** | Very fast (matrix math) | Slower (neural network forward pass) |
+
+**Key training details** (in `train_moabb.py`):
+- **Dataset:** PhysioNet EEGMMIDB — 10 subjects, 21 motor-cortex channels (sensorimotor strip: FC5–FC6, C5–C6, CP5–CP6)
+- **Motor imagery runs:** R04, R06, R08, R10, R12, R14 → FORWARD class
+- **Rest baseline runs:** R01, R02 → IDLE class
+- **Architecture tournament:** MDM, TS+LDA, and FBCSP+LDA compete in 5-fold stratified CV — winner auto-selected
+- **Augmentation:** Time-jitter (±25 samples), applied **inside** CV folds only (no data leakage)
+- **Artifact rejection:** Epochs with >100µV peak-to-peak discarded (>25% bad channels)
+- **Calibration:** Platt scaling on held-out 15% set for well-calibrated probabilities
+- **Output:** Binary — IDLE (0) vs FORWARD (1), saved as `models/moabb_csp_lda.pkl`
+
+---
+
+### Other Classification Engines in the Codebase
+
+ORBIT AI has **three other classifiers** that serve different purposes. They are NOT alternatives that run alongside the Riemannian pipeline — each is used in a specific situation:
+
+#### ERD-Based Classifier (Real Hardware — `bridge_bioamp.py`)
+
+When using the physical BioAmp EXG Pill (which only has 2 channels: C3 and C4), the Riemannian model cannot run because it needs 21 channels. Instead, `bridge_bioamp.py` uses a pure signal-processing approach:
+
+```
+C3/C4 raw → Bandpass (1–45 Hz, stateful SOS filter)
   → Welch PSD (Mu+Beta: 8–30 Hz)
   → ERD% = (baseline − live) / baseline
   → 4-way threshold classifier (FORWARD / LEFT / RIGHT / IDLE)
+  → EMG fast-path: jaw clench detection on every sample (< 100ms)
 ```
 
-**Key details:**
 - **No ML model** — pure signal processing with calibrated thresholds
-- **EMG fast-path:** Jaw clench detection on every sample (< 100ms latency), bypasses the 1-second epoch accumulation
-- **FORWARD inference:** Bilateral symmetry — when C3 and C4 both desynchronize equally (no Cz channel available)
+- **FORWARD inference:** Bilateral symmetry — C3 and C4 both desynchronize equally
+- **LEFT/RIGHT:** Contralateral ERD (left hand imagery → C4 desynchronization, right hand → C3)
 
-### 4. BioSensor Fallback (`predict_realtime.py`)
+#### BioSensor Fallback (`predict_realtime.py` / `predict_websocket.py`)
 
-If no trained MOABB model is found, falls back to a physics-based **Beta/Alpha ratio** threshold. This is the simplest classifier and requires no training.
+If no trained MOABB model file (`moabb_csp_lda.pkl`) is found at startup, the dashboard falls back to a simple **Beta/Alpha log-ratio** threshold. This requires no training and provides ~60% accuracy.
+
+#### CNN-LSTM (Legacy — `model.py` + `train.py`)
+
+A deep learning model exists in the codebase but is **not loaded by any live inference script**. It was the original approach before the Riemannian pipeline was adopted.
+
+```
+Input (batch, 30, 18) → Conv1D(18→64) → BN → ReLU → MaxPool
+  → Conv1D(64→128) → BN → ReLU
+  → BiLSTM(128→64, 2 layers) → Global Avg Pool
+  → FC(128→64) → FC(64→n_classes)
+```
+
+- **Status:** Code exists in `model.py`, trainer in `train.py`, saved weights in `models/best_model.pth` — but **none of the live prediction scripts load it**
+- **Why inactive:** It requires subject-specific training data and does not generalize well to new users, which conflicts with the "Universal Brain" design goal
+- **See:** [LEGACY.md](./LEGACY.md) for a full list of legacy files and their status
 
 ### ⚠️ Known Limitation: Channel Mismatch on Real Hardware
 
@@ -216,12 +243,12 @@ The Riemannian model is trained on 21-channel data, but the BioAmp bridge only p
 
 ### Algorithm Selection Summary
 
-| Engine | Used When | Channels | Accuracy | File |
-|--------|-----------|----------|----------|------|
-| **Riemannian FBCSP+LDA** | MOABB model exists + ≥21 channels | 21 | 83.71% | `train_moabb.py` |
-| **ERD Threshold** | Real BioAmp hardware | 2 (C3, C4) | ~70% (estimated) | `bridge_bioamp.py` |
-| **BioSensor Fallback** | No trained model available | Any | ~60% | `predict_realtime.py` |
-| **CNN-LSTM** | Not currently active | 18 features | Untested | `model.py` + `train.py` |
+| Engine | Status | Used When | Channels | Accuracy | File(s) |
+|--------|--------|-----------|----------|----------|---------|
+| **Riemannian FBCSP+LDA** | ✅ **Active** | Simulated data or ≥21ch hardware | 21 | 83.71% | `train_moabb.py` → `predict_realtime.py` / `predict_websocket.py` |
+| **ERD Threshold** | ✅ **Active** | Real BioAmp hardware (2 channels) | 2 (C3, C4) | ~70% est. | `bridge_bioamp.py` |
+| **BioSensor Fallback** | ⚠️ **Fallback** | No trained model file found | Any | ~60% est. | `predict_realtime.py` / `predict_websocket.py` |
+| **CNN-LSTM** | ❌ **Inactive** | Not loaded by any live script | 18 features | Untested | `model.py` + `train.py` |
 
 ---
 
@@ -246,11 +273,13 @@ cd ..
 python train_moabb.py
 ```
 
+This downloads PhysioNet EEG data for 10 subjects, extracts motor imagery and rest epochs, runs an architecture tournament (MDM vs TS+LDA vs FBCSP+LDA), and saves the best model to `models/moabb_csp_lda.pkl`.
+
 ### 3. Personal Calibration
 
-IMPORTANT: This requires simulate_tgam.py running in a 
-separate terminal first (see Step 4a below), since 
-calibrate.py connects to it via socket on port 9999.
+IMPORTANT: This requires `simulate_tgam.py` running in a 
+separate terminal first, since `calibrate.py` connects to it 
+via socket on port 9999.
 
 Terminal 1:
 ```bash
@@ -316,57 +345,29 @@ python predict_realtime.py
 
 ## 🛡️ 5-Layer Safety Pipeline
 
-The `predict_realtime.py` engine implements sequential security checks before any wheelchair command is issued:
+The `predict_realtime.py` and `predict_websocket.py` engines implement sequential security checks before any wheelchair command is issued:
 
 | Gate | Check | Action on Failure |
 |------|-------|-------------------|
-| **1. Signal Quality** | RMS amplitude > electrode-contact threshold | Command blocked |
-| **2. Warm-Up** | 2-minute "Brain-Settle" period elapsed | Command blocked |
-| **3. Fatigue Monitor** | θ/(α+β) ratio below drowsiness limit | Speed reduced / alert |
-| **4. EMG Emergency Stop** | Jaw clench spike > 100μV | Immediate halt (< 100ms) |
-| **5. Weighted Voting** | Majority vote over last 3 predictions | Prevents jitter/flickering |
+| **1. Signal Quality** | RMS amplitude > electrode-contact threshold; artifact rejection (±100µV peak-to-peak) | Command blocked |
+| **2. Warm-Up** | 5-second "Brain-Settle" period elapsed (0 in demo mode) | Command blocked |
+| **3. Fatigue Monitor** | θ/(α+β) ratio below drowsiness limit (from personal profile) | Speed reduced / alert / CRITICAL halt |
+| **4. EMG Emergency Stop** | Jaw clench spike > 100μV (via `bridge_bioamp.py`) | Immediate halt (< 100ms) |
+| **5. Hysteresis Voting** | 3 consecutive FORWARD predictions to engage; 1 IDLE to release (safety-biased) | Prevents jitter/flickering |
 
 ---
 
 ## 📊 Results
 
-### Current System Results
 | Metric | Value | Condition |
 |--------|-------|-----------|
-| **Validation Accuracy** | 83.71% | IDLE vs. FORWARD, 21-channel FBCSP+LDA (data leakage resolved & artifact rejection) |
-| **Cross-Validation** | 5-Fold Stratified | Best pipeline auto-selected |
+| **Validation Accuracy** | 83.71% | IDLE vs. FORWARD, 21-channel FBCSP+LDA (leakage-free CV + artifact rejection) |
+| **Cross-Validation** | 5-Fold Stratified | Best pipeline auto-selected from MDM / TS+LDA / FBCSP+LDA |
 | **Inference Latency** | < 100ms | Socket → prediction → display |
 | **EMG Stop Latency** | < 100ms | Jaw-clench → STOP command |
-| **Calibration Time** | 95 seconds | Personal profiling session (includes L/R imagery) |
-
-### Overall Project Benchmarks
-| Metric | Value |
-|--------|-------|
-| Model | MOABB FBCSP+LDA |
-| Cross-validation Accuracy | 83.71% (PhysioNet Motor Imagery) |
-| Inference Latency | < 1 second |
-| Training Subjects | 9+ clinical EEG subjects |
-| Emergency Stop Response | < 100ms (jaw clench EMG) |
-| Prototype Cost | ~₹5,000 |
-
----
-
-## 📁 File Structure
-
-orbit-ai/
-├── predict_realtime.py   ← Main dashboard
-├── simulate_tgam.py      ← EEG stream simulator
-├── train_moabb.py        ← Universal brain training
-├── calibrate.py          ← Personal calibration
-├── diagnose.py           ← System health check
-├── bridge_bioamp.py      ← Real hardware bridge
-├── bridge_ad8232.py      ← AD8232 EMG bridge
-├── logger_orbit.py       ← Session logging
-├── config.py             ← All settings
-├── model.py              ← CNN-LSTM architecture
-└── models/
-    ├── moabb_csp_lda.pkl ← Trained MOABB model
-    └── personal_profile.json ← Your calibration
+| **Calibration Time** | 95 seconds | Personal profiling session |
+| **Training Subjects** | 10 | PhysioNet EEGMMIDB clinical EEG subjects |
+| **Prototype Cost** | ~₹5,000 (~$60) | BioAmp EXG Pill + ESP32/Arduino |
 
 ---
 
@@ -374,75 +375,117 @@ orbit-ai/
 
 ```
 Mind_Wave_AImodel/
-├── config.py                       # Master configuration (ports, thresholds, paths)
+├── config.py                       # Master configuration (ports, thresholds, paths, channel names)
 ├── requirements.txt                # Python dependencies
 │
 ├── # ── Signal Bridges ────────────────────────────
-├── bridge_bioamp.py                # Primary hardware bridge (BioAmp EXG Pill)
-├── bridge_ad8232.py                # Budget hardware bridge (AD8232)
-├── simulate_tgam.py                # EEG simulator (streams clinical data over socket)
+├── bridge_bioamp.py                # Primary hardware bridge (BioAmp EXG Pill, 2-channel)
+├── simulate_tgam.py                # EEG simulator (streams PhysioNet data over socket)
 │
-├── # ── Data Pipeline ─────────────────────────────
-├── fetch_and_process_openneuro.py  # Downloads OpenNeuro datasets
-├── quick_process.py                # Welch PSD feature extraction
-├── preprocess.py                   # Full offline preprocessing pipeline
-│
-├── # ── AI Engine ─────────────────────────────────
-├── model.py                        # CNN-LSTM neural network architecture
-├── train.py                        # Deep learning trainer (legacy)
-├── train_moabb.py                  # Riemannian pipeline trainer (primary)
+├── # ── AI Engine (Active) ────────────────────────
+├── train_moabb.py                  # Riemannian FBCSP+LDA trainer (primary pipeline)
 ├── calibrate.py                    # 95-second personal profiler
-├── collect_data.py                 # Personal data collection
-├── fine_tune.py                    # Transfer learning fine-tuning
+│
+├── # ── AI Engine (Legacy — Not Used at Runtime) ──
+├── model.py                        # CNN-LSTM neural network architecture (inactive)
+├── train.py                        # CNN-LSTM deep learning trainer (inactive)
+├── preprocess.py                   # Feature engineering for CNN-LSTM (inactive)
+├── collect_data.py                 # Personal data collection for CNN-LSTM (inactive)
+├── fine_tune.py                    # Transfer learning for CNN-LSTM (inactive)
+├── evaluate.py                     # Evaluates best_model.pth only (inactive)
+├── fetch_and_process_openneuro.py  # OpenNeuro dataset downloader (inactive)
+├── quick_process.py                # Welch PSD feature extraction (inactive)
 │
 ├── # ── Runtime ───────────────────────────────────
-├── predict_realtime.py             # Core runtime + TUI dashboard
+├── predict_realtime.py             # Live TUI dashboard (loads moabb_csp_lda.pkl)
+├── predict_websocket.py            # WebSocket server for web dashboard (loads moabb_csp_lda.pkl)
+├── demo_mode.py                    # One-command demo launcher
 │
 ├── # ── Diagnostics & Reporting ───────────────────
-├── evaluate.py                     # Model evaluation (accuracy, F1, confusion matrix)
 ├── diagnose.py                     # System health check + event-aligned testing
-├── logger_orbit.py                 # Centralized daily logging
-├── auto_report.py                  # Post-session PDF/text report generator
+├── logger_orbit.py                 # Centralized session logging (CSV with timestamps)
+├── auto_report.py                  # Post-session report generator
 │
 ├── # ── Documentation ─────────────────────────────
 ├── README.md                       # This file
 ├── ARCHITECTURE.md                 # Architecture deep-dive
-├── orbit_ai_architecture.md        # Full architecture manual
-├── visual_workflow.md              # Mermaid flowcharts & data pipeline diagrams
-├── FILE_ROLES.md                   # File-by-file role reference
-├── RND_PAPER.md                    # Full R&D paper with references
+├── LEGACY.md                       # Legacy file reference (which files are inactive and why)
+├── RND_PAPER.md                    # Full R&D paper with 23 academic references
+├── CHANGELOG.md                    # Version history
 │
-├── data/                           # Training data (.npy, .csv, .edf)
-├── models/                         # Saved models (.pkl, .pth, .json)
+├── # ── Web Dashboard ─────────────────────────────
+├── wheelchair-simulator/           # Next.js virtual wheelchair dashboard
+│   ├── src/app/page.tsx            # Main dashboard page
+│   └── ...
+│
+├── data/                           # Training data (.npy, .csv, .edf, cached epochs)
+├── models/                         # Saved models
+│   ├── moabb_csp_lda.pkl           # ✅ Active Riemannian model (~43 MB)
+│   ├── best_model.pth              # ❌ Legacy CNN-LSTM weights (not loaded at runtime)
+│   └── personal_profile.json      # Personal calibration data (after running calibrate.py)
+├── logs/                           # Session logs (CSV telemetry)
 └── notebooks/                      # Jupyter notebooks
 ```
+
+---
+
+## 🔮 Future Roadmap
+
+### What We're Doing Now (v2.0)
+- ✅ Binary classification: **IDLE vs. FORWARD** from motor imagery EEG
+- ✅ Riemannian FBCSP+LDA pipeline trained on 10 PhysioNet subjects (83.71% CV accuracy)
+- ✅ 5-layer safety gate pipeline with fatigue monitoring
+- ✅ EMG emergency stop via jaw-clench detection (< 100ms)
+- ✅ 95-second personal calibration
+- ✅ Dual interface: Terminal TUI dashboard + Next.js web dashboard
+- ✅ EEG stream simulator for development without hardware
+
+### What's Coming Next
+1. **4-Class Navigation** — Expand from IDLE/FORWARD to FORWARD/LEFT/RIGHT/STOP using multi-class Riemannian classifiers (the ERD classifier in `bridge_bioamp.py` already supports this at the signal level)
+2. **EEGNet Integration** — Replace the channel-dependent Riemannian pipeline with a channel-agnostic compact CNN (EEGNet) to unify the 21-channel simulator path and the 2-channel hardware path into a single model
+3. **Real-World Motor Integration** — Connect to physical wheelchair motors via CAN bus or ROS2
+4. **Edge Deployment** — Port inference to Raspberry Pi / Jetson Nano for portable, offline use
+5. **Online Domain Adaptation** — Continuous personalization during use, eliminating the need for explicit calibration sessions
+6. **Multi-Modal Fusion** — Combine EEG with eye-tracking and head gestures for richer command sets
+7. **Clinical Trials** — Partner with rehabilitation centers for real-world validation with ALS and SCI patients
+8. **Federated Learning** — Improve the universal model across users without centralizing raw EEG data
 
 ---
 
 ## ⚠️ Troubleshooting
 
 **ImportError: No module named 'logger_orbit'**
-Ensure logger_orbit.py exists in the project root. Run 
-git pull to fetch the latest version if missing.
+Ensure `logger_orbit.py` exists in the project root. Run 
+`git pull` to fetch the latest version if missing.
 
 **Connection refused on port 9999**
-Start simulate_tgam.py FIRST, in its own terminal, before 
-running calibrate.py, predict_realtime.py, or predict_websocket.py.
+Start `simulate_tgam.py` FIRST, in its own terminal, before 
+running `calibrate.py`, `predict_realtime.py`, or `predict_websocket.py`.
 
 **Web dashboard shows blank page / won't connect**
-1. Confirm predict_websocket.py is running and shows 
+1. Confirm `predict_websocket.py` is running and shows 
    "WebSocket server started" in the terminal
-2. Confirm you ran npm install inside wheelchair-simulator/ 
+2. Confirm you ran `npm install` inside `wheelchair-simulator/` 
    at least once
 3. Check the browser console for WebSocket connection errors
 
 **All predictions show IDLE**
-Run python calibrate.py to set your personal bio-thresholds 
-before running predict_realtime.py or predict_websocket.py.
+Run `python calibrate.py` to set your personal bio-thresholds 
+before running `predict_realtime.py` or `predict_websocket.py`.
 
 **ModuleNotFoundError for moabb or pyriemann**
-These are required by train_moabb.py. Run:
-  pip install moabb pyriemann
+These are required by `train_moabb.py`. Run:
+  `pip install moabb pyriemann`
+
+---
+
+## 🔬 Datasets
+
+| Dataset | Subjects | Channels | Rate | Usage in ORBIT AI |
+|---------|----------|----------|------|-------------------|
+| [PhysioNet EEGMMIDB](https://physionet.org/content/eegmmidb/1.0.0/) | 109 (10 used) | 64 (21 selected) | 160 Hz | **Active** — Primary training for Riemannian pipeline |
+| [OpenNeuro ds002721](https://openneuro.org/datasets/ds002721) | 23 | Variable | Variable | **Legacy** — Was used for CNN-LSTM pre-training |
+| [BNCI 2014-001](http://bnci-horizon-2020.eu/database/data-sets#001-2014) | 9 | 22 | 250 Hz | **Reference** — Validation & benchmarking |
 
 ---
 
@@ -450,18 +493,10 @@ These are required by train_moabb.py. Run:
 
 | Document | Description |
 |----------|-------------|
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Full system architecture, file roles, and visual workflows |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Full system architecture and visual workflows |
 | [RND_PAPER.md](./RND_PAPER.md) | Research paper with datasets, algorithms, and 23 academic references |
-
----
-
-## 🔬 Datasets
-
-| Dataset | Subjects | Channels | Rate | Usage |
-|---------|----------|----------|------|-------|
-| [PhysioNet EEGMMIDB](https://physionet.org/content/eegmmidb/1.0.0/) | 109 | 64 | 160 Hz | Primary training (Riemannian pipeline) |
-| [OpenNeuro ds002721](https://openneuro.org/datasets/ds002721) | 23 | Variable | Variable | Legacy CNN-LSTM pre-training |
-| [BNCI 2014-001](http://bnci-horizon-2020.eu/database/data-sets#001-2014) | 9 | 22 | 250 Hz | Validation & benchmarking |
+| [LEGACY.md](./LEGACY.md) | Legacy file reference — which files are inactive and why |
+| [CHANGELOG.md](./CHANGELOG.md) | Version history and changes |
 
 ---
 
@@ -477,4 +512,4 @@ Built upon the open-source BCI community: [PhysioNet](https://physionet.org) · 
 
 ---
 
-*ORBIT AI v2.0 · June 2026 · NAVEENKCG/Mind_Wave_AImodel*
+*ORBIT AI v2.0 · July 2026 · NAVEENKCG/Mind_Wave_AImodel*
