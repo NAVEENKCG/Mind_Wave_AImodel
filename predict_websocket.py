@@ -37,6 +37,7 @@ except Exception as e:
 from config import *
 from config import C3_INDEX, C4_INDEX, N_MOTOR_CHANNELS
 from logger_orbit import logger as orbit_logger
+from adapt_drift import load_drift_profile, apply_drift_to_threshold, apply_drift_to_fatigue, get_warmup_extension
 
 COMMANDS = {0: "IDLE", 1: "FORWARD"}
 # NOTE: Artifact threshold is in µV. Simulator data arrives in Volts (MNE convention),
@@ -96,6 +97,17 @@ class RealtimePredictor:
             try:
                 with open(self.profile_path, "r") as f: self.profile = json.load(f)
             except: pass
+
+        # ── Load Drift Adaptation Profile (Model 2) ──────────────
+        # SAFETY: This NEVER modifies moabb_csp_lda.pkl.
+        # It only adjusts thresholds via offsets from drift_profile.json.
+        self.drift_profile = load_drift_profile()
+        if self.drift_profile is not None:
+            ver = self.drift_profile.get('adaptation_version', '?')
+            n_sess = self.drift_profile.get('sessions_analyzed', '?')
+            print(f"[MODEL2] Drift Adaptation v{ver} loaded ({n_sess} sessions analyzed)")
+        else:
+            self.drift_profile = None
 
         self.recent_preds = deque(maxlen=3)  # Sharper smoothing: less regression-to-mean
         self.fatigue_history = deque(maxlen=50)
@@ -362,6 +374,8 @@ class RealtimePredictor:
                     avg_fatigue = np.mean(self.fatigue_history)
                     
                     fatigue_thresh = self.profile.get("fatigue_threshold", 0.8) if self.profile else 0.8
+                    # Model 2: apply drift scaling to fatigue threshold
+                    fatigue_thresh = apply_drift_to_fatigue(fatigue_thresh, self.drift_profile)
                     if avg_fatigue > fatigue_thresh * 1.5: self.fatigue_state = "CRITICAL"
                     elif avg_fatigue > fatigue_thresh * 1.2: self.fatigue_state = "WARNING"
                     elif avg_fatigue > fatigue_thresh * 1.05: self.fatigue_state = "ALERT"
@@ -373,7 +387,8 @@ class RealtimePredictor:
                         continue
 
                     # During warmup: collect baseline attention values for adaptive threshold
-                    if self.session_age < 5:
+                    warmup_duration = 5 + get_warmup_extension(self.drift_profile)
+                    if self.session_age < warmup_duration:
                         self.last_command = "CALIBRATING"
                         self.broadcast_data.update({"command": "IDLE", "signal": "WARMUP"})
                         # Compute beta/alpha ratio from raw epoch (not the pre-computed
@@ -446,6 +461,8 @@ class RealtimePredictor:
                             total_w += w
                         score_fwd = sum(weighted_scores) / (total_w + 1e-9)
                         threshold = self.adaptive_threshold
+                        # Model 2: apply drift offset to threshold (NEVER changes the model)
+                        threshold = apply_drift_to_threshold(threshold, self.drift_profile)
 
                         # Raw decision from the model
                         raw_cmd = "FORWARD" if score_fwd > threshold else "IDLE"
@@ -476,11 +493,39 @@ class RealtimePredictor:
                         })
 
                         # Log every classification event to the session logger
+                        # Compute band powers and signal RMS for drift engine
+                        _log_rms = 0.0
+                        _log_theta = _log_alpha = _log_beta = 0.0
+                        try:
+                            _raw_epoch = raw.get("_raw_epoch")
+                            if _raw_epoch is not None:
+                                _epoch_arr = np.array(_raw_epoch)
+                                _log_rms = float(np.sqrt(np.mean(_epoch_arr ** 2)))
+                                _fs = raw.get("_sfreq", 160)
+                                for _ci in [C3_INDEX, C4_INDEX]:
+                                    if _ci < _epoch_arr.shape[0]:
+                                        _cd = _epoch_arr[_ci]
+                                        if not np.all(_cd == 0):
+                                            _f, _pxx = welch(_cd, fs=_fs, nperseg=min(len(_cd), int(_fs)))
+                                            _log_theta += float(np.mean(_pxx[(_f >= 4) & (_f <= 8)]))
+                                            _log_alpha += float(np.mean(_pxx[(_f >= 8) & (_f <= 13)]))
+                                            _log_beta += float(np.mean(_pxx[(_f >= 13) & (_f <= 30)]))
+                                _log_theta /= 2.0
+                                _log_alpha /= 2.0
+                                _log_beta /= 2.0
+                        except Exception:
+                            pass
+
                         orbit_logger.log_event(
                             command=self.last_command,
                             confidence=float(self.last_conf),
                             signal_quality=self.signal_msg,
                             fatigue_state=self.fatigue_state,
+                            raw_forward_prob=forward_prob,
+                            signal_rms=_log_rms,
+                            theta_power=_log_theta,
+                            alpha_power=_log_alpha,
+                            beta_power=_log_beta,
                         )
 
                 time.sleep(0.05)

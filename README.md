@@ -405,6 +405,7 @@ Mind_Wave_AImodel/
 ├── diagnose.py                     # System health check + event-aligned testing
 ├── logger_orbit.py                 # Centralized session logging (CSV with timestamps)
 ├── auto_report.py                  # Post-session report generator
+├── adapt_drift.py                  # Adaptive Neural Drift Engine (Model 2) — adjusts thresholds over time
 │
 ├── # ── Documentation ─────────────────────────────
 ├── README.md                       # This file
@@ -439,13 +440,38 @@ Mind_Wave_AImodel/
 - ✅ 95-second personal calibration
 - ✅ Dual interface: Terminal TUI dashboard + Next.js web dashboard
 - ✅ EEG stream simulator for development without hardware
+- ✅ **Adaptive Neural Drift Engine (Model 2)** — detects brain signal degradation over time and auto-adjusts thresholds without modifying the original model
+
+### 🧬 Adaptive Drift Engine (Model 2)
+
+ORBIT AI now has a **two-model architecture** to handle signal changes from aging, medication, or neurodegeneration:
+
+| Layer | File | What It Does | Modifies Original? |
+|-------|------|-------------|-------------------|
+| **Model 1** — Universal Brain | `moabb_csp_lda.pkl` | Core Riemannian classifier, trained once on PhysioNet | **NEVER modified** |
+| **Model 2** — Drift Engine | `drift_profile.json` | Adjusts thresholds based on session log analysis | Only writes to its own file |
+
+**How to use:**
+
+```bash
+# Analyze your session logs and generate adaptations
+python adapt_drift.py
+
+# View drift report without saving
+python adapt_drift.py --report
+
+# Reset to original behavior (delete drift profile)
+python adapt_drift.py --reset
+```
+
+The drift engine reads your accumulated session logs from `logs/`, detects trends (declining confidence, signal amplitude changes, increased fatigue events), and writes threshold adjustments to `models/drift_profile.json`. Both `predict_realtime.py` and `predict_websocket.py` automatically load this file on startup. Deleting `drift_profile.json` instantly reverts to original Model 1 behavior.
 
 ### What's Coming Next
 1. **4-Class Navigation** — Expand from IDLE/FORWARD to FORWARD/LEFT/RIGHT/STOP using multi-class Riemannian classifiers (the ERD classifier in `bridge_bioamp.py` already supports this at the signal level)
 2. **EEGNet Integration** — Replace the channel-dependent Riemannian pipeline with a channel-agnostic compact CNN (EEGNet) to unify the 21-channel simulator path and the 2-channel hardware path into a single model
 3. **Real-World Motor Integration** — Connect to physical wheelchair motors via CAN bus or ROS2
 4. **Edge Deployment** — Port inference to Raspberry Pi / Jetson Nano for portable, offline use
-5. **Online Domain Adaptation** — Continuous personalization during use, eliminating the need for explicit calibration sessions
+5. **Online Domain Adaptation (Advanced)** — Continuous real-time model weight adaptation during use (the Drift Engine handles threshold-level adaptation offline; this would add live weight updates)
 6. **Multi-Modal Fusion** — Combine EEG with eye-tracking and head gestures for richer command sets
 7. **Clinical Trials** — Partner with rehabilitation centers for real-world validation with ALS and SCI patients
 8. **Federated Learning** — Improve the universal model across users without centralizing raw EEG data

@@ -28,6 +28,7 @@ from scipy.signal import welch
 from config import *
 from config import C3_INDEX, C4_INDEX, N_MOTOR_CHANNELS
 from logger_orbit import logger as orbit_logger
+from adapt_drift import load_drift_profile, apply_drift_to_threshold, apply_drift_to_fatigue, get_warmup_extension
 
 COMMANDS = {0: "IDLE", 1: "FORWARD"}
 
@@ -121,6 +122,20 @@ class RealtimePredictor:
                 self.console.print("[yellow]⚠ Could not load personal calibration.[/yellow]")
         else:
             self.console.print("[yellow]⚠ No personal profile found. Run calibrate.py for best results.[/yellow]")
+
+        # ── Load Drift Adaptation Profile (Model 2) ──────────────
+        # SAFETY: This NEVER modifies moabb_csp_lda.pkl.
+        # It only adjusts thresholds via offsets from drift_profile.json.
+        self.drift_profile = load_drift_profile()
+        if self.drift_profile is not None:
+            ver = self.drift_profile.get('adaptation_version', '?')
+            n_sess = self.drift_profile.get('sessions_analyzed', '?')
+            self.console.print(
+                f"[green]✅ Drift Adaptation v{ver} loaded "
+                f"({n_sess} sessions analyzed)[/green]"
+            )
+        else:
+            self.drift_profile = None
 
         # ── Health & Smoothing State ────────────────────────────────
         self.recent_preds = deque(maxlen=3)
@@ -456,6 +471,8 @@ class RealtimePredictor:
                     avg_fatigue = np.mean(self.fatigue_history)
                     
                     fatigue_thresh = self.profile.get("fatigue_threshold", 0.8) if self.profile else 0.8
+                    # Model 2: apply drift scaling to fatigue threshold
+                    fatigue_thresh = apply_drift_to_fatigue(fatigue_thresh, self.drift_profile)
                     if avg_fatigue > fatigue_thresh * 1.5:
                         self.fatigue_state = "CRITICAL"
                     elif avg_fatigue > fatigue_thresh * 1.2:
@@ -471,8 +488,9 @@ class RealtimePredictor:
                         live.update(self.build_layout())
                         continue
 
-                    # 3. Warmup Phase Override
                     warmup_gate = DEMO_WARMUP if self.demo_mode else 5
+                    # Model 2: extend warmup if drift engine detected early-session instability
+                    warmup_gate += get_warmup_extension(self.drift_profile)
                     if self.session_age < warmup_gate:
                         self.last_command = "CALIBRATING"
                         self.signal_msg = "[yellow]WARMUP[/yellow]"
@@ -497,6 +515,8 @@ class RealtimePredictor:
                             threshold = DEMO_THRESHOLD
                         else:
                             threshold = self.profile.get("moabb_confidence_threshold", 0.50) if self.profile else 0.50
+                            # Model 2: apply drift offset to threshold (NEVER changes the model)
+                            threshold = apply_drift_to_threshold(threshold, self.drift_profile)
 
                         # Raw decision from the model
                         raw_cmd = "FORWARD" if score_fwd > threshold else "IDLE"
@@ -528,10 +548,38 @@ class RealtimePredictor:
                             self.last_conf = 1.0 - score_fwd
                             self.total_idle += 1
 
-                        # Log event for session reports
+                        # Log event for session reports (with drift-relevant extras)
+                        # Compute band powers and signal RMS for drift engine
+                        _log_rms = 0.0
+                        _log_theta = _log_alpha = _log_beta = 0.0
+                        try:
+                            _raw_epoch = raw.get("_raw_epoch")
+                            if _raw_epoch is not None:
+                                _epoch_arr = np.array(_raw_epoch)
+                                _log_rms = float(np.sqrt(np.mean(_epoch_arr ** 2)))
+                                _fs = raw.get("_sfreq", 160)
+                                for _ci in [C3_INDEX, C4_INDEX]:
+                                    if _ci < _epoch_arr.shape[0]:
+                                        _cd = _epoch_arr[_ci]
+                                        if not np.all(_cd == 0):
+                                            _f, _pxx = welch(_cd, fs=_fs, nperseg=min(len(_cd), int(_fs)))
+                                            _log_theta += float(np.mean(_pxx[(_f >= 4) & (_f <= 8)]))
+                                            _log_alpha += float(np.mean(_pxx[(_f >= 8) & (_f <= 13)]))
+                                            _log_beta += float(np.mean(_pxx[(_f >= 13) & (_f <= 30)]))
+                                _log_theta /= 2.0
+                                _log_alpha /= 2.0
+                                _log_beta /= 2.0
+                        except Exception:
+                            pass
+
                         orbit_logger.log_event(
                             self.last_command, self.last_conf,
-                            self.signal_msg, self.fatigue_state
+                            self.signal_msg, self.fatigue_state,
+                            raw_forward_prob=forward_prob,
+                            signal_rms=_log_rms,
+                            theta_power=_log_theta,
+                            alpha_power=_log_alpha,
+                            beta_power=_log_beta,
                         )
 
                 live.update(self.build_layout())

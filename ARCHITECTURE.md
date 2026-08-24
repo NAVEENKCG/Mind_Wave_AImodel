@@ -489,4 +489,72 @@ Switch modes by changing `SERIAL_PORT` in `config.py` and removing `--demo`.
 
 ---
 
-*Updated: July 2026 | ORBIT AI v3.0 — Hybrid BCI-EMG System | NAVEENKCG/Mind_Wave_AImodel*
+## 🔄 15. Adaptive Neural Drift Engine (Model 2)
+
+ORBIT AI uses a **two-model architecture** to handle long-term brain signal changes. Model 1 (the Universal Brain) stays frozen forever. Model 2 (the Drift Engine) adjusts operating thresholds based on accumulated session log analysis — like a phone's overnight software update.
+
+```mermaid
+flowchart TD
+    classDef frozen fill:#1e293b,stroke:#22c55e,stroke-width:3px,color:#fff
+    classDef drift fill:#334155,stroke:#f59e0b,stroke-width:2px,color:#fff
+    classDef safe fill:#0f172a,stroke:#ef4444,stroke-width:2px,color:#fff
+    classDef output fill:#020617,stroke:#0ea5e9,stroke-width:2px,color:#fff
+
+    subgraph MODEL1["Model 1 — Universal Brain (FROZEN)"]
+        M1["moabb_csp_lda.pkl<br/>Riemannian FBCSP+LDA<br/>Trained once on PhysioNet<br/>NEVER MODIFIED"]:::frozen
+    end
+
+    subgraph MODEL2["Model 2 — Adaptive Drift Engine"]
+        LOGS["Session Logs<br/>(logs/*.csv)"]:::drift
+        ANALYZE["adapt_drift.py<br/>EWMA + Trend Detection<br/>Safety-Bounded Adaptations"]:::drift
+        DRIFT["drift_profile.json<br/>Threshold offsets only<br/>No model weights"]:::drift
+
+        LOGS --> ANALYZE --> DRIFT
+    end
+
+    subgraph RUNTIME["Runtime Prediction Pipeline"]
+        PRED["predict_realtime.py<br/>or predict_websocket.py"]:::output
+        THRESH["Adapted Thresholds<br/>= Base + Drift Offset"]:::output
+    end
+
+    M1 -->|"Loads (read-only)"| PRED
+    DRIFT -->|"Loads offsets (optional)"| THRESH
+    PRED --> THRESH
+    THRESH -->|"FORWARD / IDLE"| CMD["Wheelchair Command"]:::safe
+
+    subgraph SAFETY["Safety Guarantees"]
+        S1["Model 1 file: READ-ONLY<br/>adapt_drift.py never imports it"]:::safe
+        S2["All offsets clamped within<br/>hard-coded safety bounds"]:::safe
+        S3["Delete drift_profile.json<br/>= instant revert to defaults"]:::safe
+    end
+```
+
+### What the Drift Engine Adapts
+
+| Parameter | What It Does | Safety Bounds |
+|-----------|-------------|---------------|
+| `confidence_threshold_offset` | Lowers/raises the FORWARD confidence threshold | [-0.15, +0.10] |
+| `fatigue_threshold_scale` | Scales the drowsiness detection limit | [0.70×, 1.50×] |
+| `signal_quality_floor_scale` | Adjusts minimum signal strength required | [0.60×, 1.20×] |
+| `biosensor_center_offset` | Shifts the BioSensor fallback baseline | [-0.50, +0.50] |
+| `warmup_extension_sec` | Adds extra warm-up time if needed | [0s, +15s] |
+
+### How It Detects Drift
+
+| Method | Metric | Detects |
+|--------|--------|---------|
+| **EWMA** (Exponentially Weighted Moving Average) | Confidence values across sessions | Recent accuracy decline vs. historical |
+| **Linear Regression** | Slope of confidence/RMS over time | Steady degradation trend |
+| **Early vs. Recent Comparison** | First ⅓ sessions vs. last ⅓ | Long-term signal amplitude loss |
+| **Fatigue Event Ratio** | % of fatigue-gated events per session | Increasing drowsiness patterns |
+
+### File Roles
+
+| File | Role | Details |
+|------|------|---------|
+| `adapt_drift.py` | Drift Analysis Engine | Reads session CSVs, computes trends, writes `drift_profile.json`. **Never accesses Model 1 files.** |
+| `models/drift_profile.json` | Adaptation Profile | Threshold offsets with version tracking and safety bounds. Loaded by prediction scripts on startup. |
+
+---
+
+*Updated: August 2026 | ORBIT AI v3.0 — Hybrid BCI-EMG System | NAVEENKCG/Mind_Wave_AImodel*

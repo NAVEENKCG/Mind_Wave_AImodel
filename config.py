@@ -83,3 +83,12 @@ MOTOR_CHANNEL_NAMES = [
 N_MOTOR_CHANNELS = len(MOTOR_CHANNEL_NAMES)
 C3_INDEX = MOTOR_CHANNEL_NAMES.index('C3..')
 C4_INDEX = MOTOR_CHANNEL_NAMES.index('C4..')
+
+# ── Adaptive Drift Engine (Model 2) ─────────────────────────────
+# The drift engine NEVER modifies moabb_csp_lda.pkl (Model 1).
+# It only writes to drift_profile.json with threshold offsets.
+ADAPTATION_ENABLED = True
+DRIFT_PROFILE_PATH = MODELS_DIR / "drift_profile.json"
+MIN_SESSIONS_FOR_ADAPTATION = 5    # Need at least 5 valid sessions
+MIN_EVENTS_PER_SESSION = 100       # Sessions with <100 events are skipped
+DRIFT_EWMA_ALPHA = 0.3             # EWMA smoothing factor (higher = more weight to recent)

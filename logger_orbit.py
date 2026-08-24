@@ -86,6 +86,12 @@ class OrbitLogger:
                         "signal_quality",
                         "fatigue_state",
                         "elapsed_seconds",
+                        # Model 2 drift columns (used by adapt_drift.py)
+                        "raw_forward_prob",
+                        "signal_rms",
+                        "theta_power",
+                        "alpha_power",
+                        "beta_power",
                     ])
         except OSError as exc:
             _log.error("Cannot write CSV header: %s", exc)
@@ -104,6 +110,11 @@ class OrbitLogger:
         confidence: float,
         signal_quality: str,
         fatigue_state: str,
+        raw_forward_prob: float = 0.0,
+        signal_rms: float = 0.0,
+        theta_power: float = 0.0,
+        alpha_power: float = 0.0,
+        beta_power: float = 0.0,
     ) -> None:
         """Append one data row to the session CSV."""
         elapsed = time.time() - self.session_start_time if self.session_start_time else 0.0
@@ -121,6 +132,12 @@ class OrbitLogger:
                         signal_quality,
                         fatigue_state,
                         f"{elapsed:.2f}",
+                        # Model 2 drift columns
+                        f"{raw_forward_prob:.4f}",
+                        f"{signal_rms:.6f}",
+                        f"{theta_power:.6f}",
+                        f"{alpha_power:.6f}",
+                        f"{beta_power:.6f}",
                     ])
         except OSError as exc:
             _log.error("Cannot write event row: %s", exc)
