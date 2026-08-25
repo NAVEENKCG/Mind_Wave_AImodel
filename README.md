@@ -1,4 +1,4 @@
-# 🧠 ORBIT AI — Universal BCI System (v2.0)
+# 🧠 ORBIT AI — Universal BCI System (v3.0)
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python)
 ![PyRiemann](https://img.shields.io/badge/PyRiemann-Riemannian_BCI-orange)
@@ -432,7 +432,7 @@ Mind_Wave_AImodel/
 
 ## 🔮 Future Roadmap
 
-### What We're Doing Now (v2.0)
+### What We're Doing Now (v3.0)
 - ✅ Binary classification: **IDLE vs. FORWARD** from motor imagery EEG
 - ✅ Riemannian FBCSP+LDA pipeline trained on 10 PhysioNet subjects (83.71% CV accuracy)
 - ✅ 5-layer safety gate pipeline with fatigue monitoring
@@ -538,4 +538,4 @@ Built upon the open-source BCI community: [PhysioNet](https://physionet.org) · 
 
 ---
 
-*ORBIT AI v2.0 · July 2026 · NAVEENKCG/Mind_Wave_AImodel*
+*ORBIT AI v3.0 · August 2026 · NAVEENKCG/Mind_Wave_AImodel*
