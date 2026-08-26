@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v3.0] — 2026-08-26
+
+### Added
+- Adaptive Neural Drift Engine (Model 2) implementation (`adapt_drift.py`)
+- Dual-model architecture for real-time predictions (`predict_realtime.py`, `predict_websocket.py`)
+- Added PalmPay integration ideas to future roadmap (`future_ideas.md`)
+
+### Changed
+- Updated architecture documentation to reflect dual-model system (`ARCHITECTURE.md`)
+- Enhanced session logger to support drift metrics (`logger_orbit.py`)
+
+---
+
 ## [v2.0] — 2025-04-12
 
 ### Added
