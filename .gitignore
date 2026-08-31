@@ -33,3 +33,9 @@ wheelchair-simulator/out/
 wheelchair-simulator/.turbo/
 wheelchair-simulator/dist/
 wheelchair-simulator/.env*.local
+prosthetic-arm-simulator/node_modules/
+prosthetic-arm-simulator/.next/
+prosthetic-arm-simulator/out/
+prosthetic-arm-simulator/.turbo/
+prosthetic-arm-simulator/dist/
+prosthetic-arm-simulator/.env*.local
