@@ -30,25 +30,34 @@ from config import C3_INDEX, C4_INDEX, N_MOTOR_CHANNELS
 from logger_orbit import logger as orbit_logger
 from adapt_drift import load_drift_profile, apply_drift_to_threshold, apply_drift_to_fatigue, get_warmup_extension
 
-COMMANDS = {0: "IDLE", 1: "FORWARD"}
+COMMANDS = {0: "IDLE", 1: "LEFT", 2: "RIGHT", 3: "FORWARD"}
 
 MOABB_MODEL_PATH = MODELS_DIR / "moabb_csp_lda.pkl"
 MOABB_STATS_PATH = DATA_DIR   / "moabb_stats.pkl"
 
 
-class WheelchairArena:
-    """2D virtual arena where 'W' moves on FORWARD command."""
+class BCIArena:
+    """2D virtual arena where marker moves based on BCI commands."""
     def __init__(self, width=30, height=12):
         self.width  = width
         self.height = height
         self.x = width  // 2
         self.y = height // 2
 
-    def update(self, cmd_id):
-        if cmd_id == 1:
+    def update(self, cmd):
+        if cmd == "FORWARD":
             self.y -= 1
             if self.y < 1:
                 self.y = self.height - 2
+        elif cmd == "LEFT":
+            self.x -= 1
+            if self.x < 1:
+                self.x = self.width - 2
+        elif cmd == "RIGHT":
+            self.x += 1
+            if self.x > self.width - 2:
+                self.x = 1
+        # IDLE = no movement
 
     def render(self):
         grid = [[" " for _ in range(self.width)] for _ in range(self.height)]
@@ -60,7 +69,7 @@ class WheelchairArena:
             grid[i][self.width - 1] = "│"
         grid[0][0] = grid[0][self.width-1] = "+"
         grid[self.height-1][0] = grid[self.height-1][self.width-1] = "+"
-        grid[self.y][self.x] = "W"
+        grid[self.y][self.x] = "◆"
         return "\n".join("".join(row) for row in grid)
 
 
@@ -72,7 +81,7 @@ class RealtimePredictor:
     def __init__(self, demo_mode=False):
         self.demo_mode = demo_mode
         self.console = Console()
-        self.arena   = WheelchairArena()
+        self.arena   = BCIArena()
         self.sock_buffer = ""
 
         # Data Logging
@@ -284,28 +293,30 @@ class RealtimePredictor:
         # Reshape to (1, n_ch, n_times)
         X = epoch[np.newaxis, :, :]
 
-        # ── Inference ─────────────────────────────────────────────────
-        pred = self.moabb_pipeline.predict(X)[0]
-        
-        # Try to get a probability for weighted voting
+        # ── Inference: 4-class ────────────────────────────────────────
+        class_map = self.moabb_stats.get('classes', COMMANDS)
         try:
-            # TS_SVM with probability=True supports this
-            probs = self.moabb_pipeline.predict_proba(X)[0]
-            forward_prob = float(probs[1])
-            idle_prob = float(probs[0])
-        except AttributeError:
-            try:
-                # Fallback for models with decision_function
-                decision = float(self.moabb_pipeline.decision_function(X)[0])
-                decision = np.clip(decision, -5, 5)
-                forward_prob = 1.0 / (1.0 + np.exp(-decision))
-                idle_prob = 1.0 - forward_prob
-            except Exception:
-                # MDM fallback
-                forward_prob = 0.95 if pred == 1 else 0.05
-                idle_prob = 1.0 - forward_prob
-
-        return forward_prob, idle_prob
+            if hasattr(self.moabb_pipeline, 'predict_proba'):
+                proba = self.moabb_pipeline.predict_proba(X)[0]
+                result = {}
+                for i, p in enumerate(proba):
+                    cmd_name = class_map.get(i, f"CLASS_{i}")
+                    result[cmd_name] = float(p)
+                for cmd in ["IDLE", "LEFT", "RIGHT", "FORWARD"]:
+                    if cmd not in result:
+                        result[cmd] = 0.0
+            else:
+                pred = int(self.moabb_pipeline.predict(X)[0])
+                pred_name = class_map.get(pred, "IDLE")
+                result = {"IDLE": 0.0, "LEFT": 0.0, "RIGHT": 0.0, "FORWARD": 0.0}
+                result[pred_name] = 0.85
+                remaining = 0.15 / max(1, len(result) - 1)
+                for k in result:
+                    if k != pred_name:
+                        result[k] = remaining
+            return result
+        except Exception:
+            return self.classify_biosensor(raw_dict)
 
     def classify_biosensor(self, raw_dict):
         """
@@ -358,7 +369,8 @@ class RealtimePredictor:
 
         dist  = attn - (-2.3)
         fwd   = 1.0 / (1.0 + np.exp(-dist * 3.0))
-        return fwd, 1.0 - fwd
+        # BioSensor fallback only produces IDLE/FORWARD-like signal
+        return {"IDLE": 1.0 - fwd, "LEFT": 0.0, "RIGHT": 0.0, "FORWARD": fwd}
 
     # ── UI ───────────────────────────────────────────────────────────
     def build_layout(self):
@@ -367,15 +379,15 @@ class RealtimePredictor:
         layout["body"].split_row(Layout(name="sidebar", ratio=1), Layout(name="arena", ratio=2))
 
         layout["header"].update(Panel(
-            f"[bold cyan]ORBIT AI — BCI WHEELCHAIR INTERFACE[/bold cyan]  [{self.engine_name}]",
+            f"[bold cyan]ORBIT AI — BCI PROSTHETIC ARM INTERFACE[/bold cyan]  [{self.engine_name}]",
             border_style="blue"
         ))
 
-        c = "green" if self.last_command == "FORWARD" else "white"
+        c = "green" if self.last_command in ("LEFT", "RIGHT", "FORWARD") else "white"
         if self.fatigue_state == "CRITICAL": c = "red"
         
         info = Table.grid(padding=(0, 1))
-        info.add_row("[bold]STATUS:[/bold]",     f"[bold {c}]{self.last_command}[/bold {c}]")
+        info.add_row("[bold]COMMAND:[/bold]",    f"[bold {c}]{self.last_command}[/bold {c}]")
         info.add_row("[bold]CONFIDENCE:[/bold]", f"[yellow]{self.last_conf * 100:.1f}%[/yellow]")
         info.add_row("[bold]SIGNAL:[/bold]",     f"{self.signal_msg}")
         info.add_row("[bold]FATIGUE:[/bold]",    f"[{ 'red' if self.fatigue_state=='CRITICAL' else 'yellow' if self.fatigue_state=='WARNING' else 'green'}]{self.fatigue_state}[/]")
@@ -393,7 +405,7 @@ class RealtimePredictor:
             info.add_row("")
             info.add_row("[bold]DEMO CONTROLS:[/bold]")
             info.add_row("  [dim]\\[0][/dim]", "Stream IDLE signal")
-            info.add_row("  [dim]\\[1][/dim]", "Stream FORWARD signal")
+            info.add_row("  [dim]\\[1][/dim]", "Stream LIFT signal")
             info.add_row("  [dim italic](via simulate_tgam.py)[/dim italic]")
 
         layout["sidebar"].update(Panel(info, title="System Info", border_style="dim"))
@@ -438,7 +450,7 @@ class RealtimePredictor:
         # Keep last raw_dict for MOABB (needs full packet, not just features)
         self._last_raw = {}
 
-        # Hysteresis state machine: prevents rapid flickering between FORWARD/IDLE
+        # Hysteresis state machine: prevents rapid flickering between LIFT/IDLE
         raw_command_streak = {"command": "IDLE", "count": 0}
         confirmed_command = "IDLE"
 
@@ -497,29 +509,42 @@ class RealtimePredictor:
                         live.update(self.build_layout())
                         continue
                         
-                    # 4. Engine Classification
+                    # 4. Engine Classification (4-class)
                     if self.moabb_pipeline is not None:
-                        forward_prob, idle_prob = self.classify_moabb(raw)
+                        probs = self.classify_moabb(raw)
                     else:
-                        forward_prob, idle_prob = self.classify_biosensor(raw)
+                        probs = self.classify_biosensor(raw)
                         
-                    self.recent_preds.append((forward_prob, idle_prob))
+                    self.recent_preds.append(probs)
 
-                    # 5. Adaptive Command Smoothing (Weighted Voting)
+                    # 5. Adaptive Command Smoothing (Weighted Voting — 4-class)
                     if len(self.recent_preds) == 3:
                         weights = [0.2, 0.3, 0.5]
-                        score_fwd = sum([p[0] * w for p, w in zip(self.recent_preds, weights)])
+                        smoothed = {"IDLE": 0.0, "LEFT": 0.0, "RIGHT": 0.0, "FORWARD": 0.0}
+                        for pred_probs, w in zip(self.recent_preds, weights):
+                            for cmd_name in smoothed:
+                                smoothed[cmd_name] += pred_probs.get(cmd_name, 0.0) * w
                         
-                        # Use 0.50 threshold to match the binary classifier validated in diagnose.py
+                        # Find best command
+                        best_cmd = max(smoothed, key=smoothed.get)
+                        best_conf = smoothed[best_cmd]
+
+                        # Apply per-class confidence threshold
+                        cmd_to_idx = {"IDLE": 0, "LEFT": 1, "RIGHT": 2, "FORWARD": 3}
                         if self.demo_mode:
                             threshold = DEMO_THRESHOLD
                         else:
-                            threshold = self.profile.get("moabb_confidence_threshold", 0.50) if self.profile else 0.50
+                            threshold = CONFIDENCE_THRESHOLDS.get(cmd_to_idx.get(best_cmd, 0), 0.60)
+                            if self.profile:
+                                threshold = self.profile.get("moabb_confidence_threshold", threshold)
                             # Model 2: apply drift offset to threshold (NEVER changes the model)
                             threshold = apply_drift_to_threshold(threshold, self.drift_profile)
 
-                        # Raw decision from the model
-                        raw_cmd = "FORWARD" if score_fwd > threshold else "IDLE"
+                        # Raw decision: require confidence above threshold
+                        if best_cmd == "IDLE" or best_conf < threshold:
+                            raw_cmd = "IDLE"
+                        else:
+                            raw_cmd = best_cmd
 
                         # Hysteresis state machine: prevents flickering
                         if raw_cmd == raw_command_streak["command"]:
@@ -528,25 +553,30 @@ class RealtimePredictor:
                             raw_command_streak["command"] = raw_cmd
                             raw_command_streak["count"] = 1
 
-                        CONFIRM_THRESHOLD = 3  # Need 3 consistent FORWARDs to engage
+                        CONFIRM_THRESHOLD = 3  # Need 3 consistent non-IDLE to engage
                         RELEASE_THRESHOLD = 1  # Single IDLE immediately stops (safety)
 
-                        if confirmed_command == "IDLE" and raw_cmd == "FORWARD":
+                        if confirmed_command == "IDLE" and raw_cmd != "IDLE":
                             if raw_command_streak["count"] >= CONFIRM_THRESHOLD:
-                                confirmed_command = "FORWARD"
-                        elif confirmed_command == "FORWARD" and raw_cmd == "IDLE":
+                                confirmed_command = raw_cmd
+                        elif confirmed_command != "IDLE" and raw_cmd == "IDLE":
                             if raw_command_streak["count"] >= RELEASE_THRESHOLD:
                                 confirmed_command = "IDLE"
+                        elif confirmed_command != "IDLE" and raw_cmd != "IDLE" and raw_cmd != confirmed_command:
+                            if raw_command_streak["count"] >= CONFIRM_THRESHOLD:
+                                confirmed_command = raw_cmd
 
                         self.last_command = confirmed_command
 
-                        if self.last_command == "FORWARD":
-                            self.arena.update(1)
-                            self.last_conf = score_fwd
+                        if self.last_command != "IDLE":
+                            self.arena.update(self.last_command)
+                            self.last_conf = smoothed.get(self.last_command, 0.0)
                             self.total_fwd += 1
                         else:
-                            self.last_conf = 1.0 - score_fwd
+                            self.last_conf = smoothed.get("IDLE", 0.0)
                             self.total_idle += 1
+
+                        forward_prob = smoothed.get("FORWARD", 0.0)
 
                         # Log event for session reports (with drift-relevant extras)
                         # Compute band powers and signal RMS for drift engine

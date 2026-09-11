@@ -23,14 +23,23 @@ INFER_WINDOW_SIZE = 8   # 0.8 seconds for faster response
 STRIDE = 5              # 50% overlap for 10Hz (approx 0.5s)
 N_FEATURES_RAW = 8      # 5 bands + attention + meditation + blink
 N_FEATURES_ENGINEERED = 18
-N_CLASSES = 5
-N_CLASSES_MOABB = 2
+N_CLASSES = 4
+N_CLASSES_MOABB = 4
 CLASS_NAMES = {
     0: "IDLE",
-    1: "FORWARD",
-    2: "LEFT",
-    3: "RIGHT",
-    4: "STOP"
+    1: "LEFT",
+    2: "RIGHT",
+    3: "FORWARD",
+}
+
+# PhysioNet EEGMMIDB run → class mapping for 4-class Motor Imagery
+# T1/T2 are event annotations within each run.
+# "both fists" epochs (T1 in fists_feet runs) are DISCARDED — not a useful command.
+MOABB_4CLASS_RUNS = {
+    "rest":    [1, 2],                     # IDLE: eyes-open + eyes-closed baseline
+    "left":    [3, 7, 11, 5, 9, 13],       # Left fist: execution (R03/07/11) + imagery (R05/09/13), T1 events
+    "right":   [3, 7, 11, 5, 9, 13],       # Right fist: same runs as left, T2 events
+    "forward": [4, 8, 12, 6, 10, 14],       # Both feet: execution (R04/08/12) + imagery (R06/10/14), T2 events only
 }
 
 # Training Hyperparameters
@@ -42,18 +51,16 @@ PATIENCE = 20
 
 # Inference & Control Logic
 CONFIDENCE_THRESHOLDS = {
-    0: 0.50,  # IDLE
-    1: 0.75,  # FORWARD
-    2: 0.80,  # LEFT
-    3: 0.80,  # RIGHT
-    4: 0.65   # STOP
+    0: 0.40,  # IDLE   — lower threshold (default state)
+    1: 0.65,  # LEFT   — moderate confidence required
+    2: 0.65,  # RIGHT  — moderate confidence required
+    3: 0.70,  # FORWARD — higher for safety
 }
 HOLD_REQUIRED = 3  # Successive predictions needed
 COOLDOWN_SECONDS = {
-    1: 2.0,   # FORWARD
-    2: 3.0,   # LEFT
-    3: 3.0,   # RIGHT
-    4: 1.0    # STOP
+    1: 2.5,   # LEFT
+    2: 2.5,   # RIGHT
+    3: 2.0,   # FORWARD
 }
 
 # Quality Filter Thresholds (during collection)

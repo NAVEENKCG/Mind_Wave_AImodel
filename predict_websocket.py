@@ -2,7 +2,7 @@
 ORBIT AI — BCI WebSocket Server (v7.0)
 ==========================================
 Connects to EEG Stream Simulator and broadcasts brainwave states
-over WebSockets for the Next.js Virtual Wheelchair Dashboard.
+over WebSockets for the Next.js Virtual Prosthetic Arm Dashboard.
 
 v7.0: Artifact rejection, confidence-weighted EWMA, adaptive threshold.
 """
@@ -39,7 +39,7 @@ from config import C3_INDEX, C4_INDEX, N_MOTOR_CHANNELS
 from logger_orbit import logger as orbit_logger
 from adapt_drift import load_drift_profile, apply_drift_to_threshold, apply_drift_to_fatigue, get_warmup_extension
 
-COMMANDS = {0: "IDLE", 1: "FORWARD"}
+COMMANDS = {0: "IDLE", 1: "LEFT", 2: "RIGHT", 3: "FORWARD"}
 # NOTE: Artifact threshold is in µV. Simulator data arrives in Volts (MNE convention),
 # so we convert to Volts before comparison. BioAmp bridge data is also scaled to Volts
 # inside its bandpass filter output. If raw ADC µV data is ever passed directly,
@@ -66,6 +66,7 @@ class RealtimePredictor:
         self.broadcast_data = {
             "command": "IDLE",
             "confidence": 0.0,
+            "probabilities": {"IDLE": 1.0, "LEFT": 0.0, "RIGHT": 0.0, "FORWARD": 0.0},
             "signal": "AWAITING SIGNAL",
             "fatigue": "NORMAL",
             "power": {"theta": 0.0, "alpha": 0.0, "beta": 0.0}
@@ -123,10 +124,10 @@ class RealtimePredictor:
         self.warmup_probs = []  # Collect model probabilities during warmup for adaptive threshold
         self.adaptive_threshold = 0.60  # Will be updated after warmup (raised from 0.50 for safety)
 
-        # Hysteresis state machine: prevents rapid flickering between FORWARD/IDLE
+        # Hysteresis state machine: prevents rapid flickering between LIFT/IDLE
         self.confirmed_command = "IDLE"
         self.consecutive_same = 0
-        self.CONFIRM_THRESHOLD = 3    # Need 3 consistent FORWARDs to engage (deliberate intent)
+        self.CONFIRM_THRESHOLD = 3    # Need 3 consistent LIFTs to engage (deliberate intent)
         self.RELEASE_THRESHOLD = 1    # Single IDLE immediately stops (safety: fast release)
 
         orbit_logger.log_session_start()
@@ -174,7 +175,7 @@ class RealtimePredictor:
 
         async def main():
             print("[WS] WebSocket Server running on ws://localhost:8765")
-            print("[NOTE] To view the Wheelchair Dashboard, open your web app (http://localhost:3000).")
+            print("[NOTE] To view the Prosthetic Arm Dashboard, open your web app (http://localhost:3000).")
             print("[NOTE] Do not open ws://localhost:8765 directly in your browser URL bar.")
             async with websockets.serve(handler, "localhost", 8765, process_request=process_request):
                 await asyncio.Future()
@@ -246,7 +247,7 @@ class RealtimePredictor:
     def classify_moabb(self, raw_dict):
         """
         Use the trained MOABB Riemannian pipeline on raw multi-channel epoch data.
-        Returns (forward_prob, idle_prob) or None on failure.
+        Returns a dict {"IDLE": p, "LEFT": p, "RIGHT": p, "FORWARD": p} or None on failure.
         """
         raw_epoch = raw_dict.get("_raw_epoch")
         if raw_epoch is None:
@@ -268,16 +269,31 @@ class RealtimePredictor:
         X = X[np.newaxis, :, :]
 
         try:
+            n_classes = self.moabb_stats.get('n_classes', 2)
+            class_map = self.moabb_stats.get('classes', COMMANDS)
+
             if hasattr(self.moabb_pipeline, 'predict_proba'):
                 proba = self.moabb_pipeline.predict_proba(X)[0]
-                idle_prob = proba[0]
-                fwd_prob  = proba[1] if len(proba) > 1 else 1.0 - idle_prob
+                result = {}
+                for i, p in enumerate(proba):
+                    cmd_name = class_map.get(i, f"CLASS_{i}")
+                    result[cmd_name] = float(p)
+                # Ensure all 4 classes are present
+                for cmd in ["IDLE", "LEFT", "RIGHT", "FORWARD"]:
+                    if cmd not in result:
+                        result[cmd] = 0.0
             else:
-                pred = self.moabb_pipeline.predict(X)[0]
-                fwd_prob  = 0.85 if pred == 1 else 0.15
-                idle_prob = 1.0 - fwd_prob
+                pred = int(self.moabb_pipeline.predict(X)[0])
+                pred_name = class_map.get(pred, "IDLE")
+                result = {"IDLE": 0.0, "LEFT": 0.0, "RIGHT": 0.0, "FORWARD": 0.0}
+                result[pred_name] = 0.85
+                # Distribute remaining probability
+                remaining = 0.15 / max(1, len(result) - 1)
+                for k in result:
+                    if k != pred_name:
+                        result[k] = remaining
 
-            return fwd_prob, idle_prob
+            return result
         except Exception as e:
             print(f"[WARN] MOABB classification failed: {e}")
             return None
@@ -429,10 +445,10 @@ class RealtimePredictor:
                         if len(self.warmup_probs) > 3:
                             sorted_probs = sorted(self.warmup_probs)
                             # Threshold at 90th percentile of resting-state forward probabilities
-                            # (raised from 75th for wheelchair safety — reduces false positives)
+                            # (raised from 75th for prosthetic arm safety — reduces false positives)
                             idx_90 = int(len(sorted_probs) * 0.90)
                             self.adaptive_threshold = max(0.60, min(0.75, sorted_probs[idx_90]))
-                            print(f"[ADAPT] Adaptive FORWARD threshold: {self.adaptive_threshold:.3f} (from {len(self.warmup_probs)} warmup predictions)")
+                            print(f"[ADAPT] Adaptive LIFT threshold: {self.adaptive_threshold:.3f} (from {len(self.warmup_probs)} warmup predictions)")
                         else:
                             self.adaptive_threshold = 0.60
                             print(f"[ADAPT] Using default threshold: {self.adaptive_threshold:.2f}")
@@ -443,29 +459,43 @@ class RealtimePredictor:
                         result = self.classify_moabb(raw)
                         
                     if result is not None:
-                        forward_prob, idle_prob = result
+                        probs = result  # {"IDLE": p, "LEFT": p, "RIGHT": p, "FORWARD": p}
                     else:
-                        forward_prob, idle_prob = self.classify_biosensor(raw)
+                        # BioSensor fallback: only produces IDLE/FORWARD-like signal
+                        fwd_p, idle_p = self.classify_biosensor(raw)
+                        probs = {"IDLE": idle_p, "LEFT": 0.0, "RIGHT": 0.0, "FORWARD": fwd_p}
 
-                    self.recent_preds.append((forward_prob, idle_prob))
+                    self.recent_preds.append(probs)
 
                     if len(self.recent_preds) == self.recent_preds.maxlen:
-                        # Confidence-weighted EWMA: weight each prediction by its own confidence
+                        # Confidence-weighted EWMA across all 4 classes
                         base_weights = [1, 2, 4]  # recency weights
-                        weighted_scores = []
+                        smoothed = {"IDLE": 0.0, "LEFT": 0.0, "RIGHT": 0.0, "FORWARD": 0.0}
                         total_w = 0
-                        for (fwd_p, idle_p), bw in zip(self.recent_preds, base_weights):
-                            conf = max(fwd_p, idle_p)  # prediction confidence
-                            w = bw * conf  # confidence-weighted
-                            weighted_scores.append(fwd_p * w)
+                        for pred_probs, bw in zip(self.recent_preds, base_weights):
+                            conf = max(pred_probs.values())  # prediction confidence
+                            w = bw * conf
+                            for cmd_name in smoothed:
+                                smoothed[cmd_name] += pred_probs.get(cmd_name, 0.0) * w
                             total_w += w
-                        score_fwd = sum(weighted_scores) / (total_w + 1e-9)
-                        threshold = self.adaptive_threshold
+                        for cmd_name in smoothed:
+                            smoothed[cmd_name] /= (total_w + 1e-9)
+
+                        # Find best non-IDLE command
+                        best_cmd = max(smoothed, key=smoothed.get)
+                        best_conf = smoothed[best_cmd]
+
+                        # Apply per-class confidence threshold
+                        cmd_to_idx = {"IDLE": 0, "LEFT": 1, "RIGHT": 2, "FORWARD": 3}
+                        threshold = CONFIDENCE_THRESHOLDS.get(cmd_to_idx.get(best_cmd, 0), 0.60)
                         # Model 2: apply drift offset to threshold (NEVER changes the model)
                         threshold = apply_drift_to_threshold(threshold, self.drift_profile)
 
-                        # Raw decision from the model
-                        raw_cmd = "FORWARD" if score_fwd > threshold else "IDLE"
+                        # Raw decision: require confidence above class-specific threshold
+                        if best_cmd == "IDLE" or best_conf < threshold:
+                            raw_cmd = "IDLE"
+                        else:
+                            raw_cmd = best_cmd
                         
                         # Apply hysteresis to stabilize the command
                         if raw_cmd == raw_command_streak["command"]:
@@ -475,19 +505,25 @@ class RealtimePredictor:
                             raw_command_streak["count"] = 1
 
                         # Require consecutive consistent predictions before switching
-                        if self.confirmed_command == "IDLE" and raw_cmd == "FORWARD":
+                        if self.confirmed_command == "IDLE" and raw_cmd != "IDLE":
                             if raw_command_streak["count"] >= self.CONFIRM_THRESHOLD:
-                                self.confirmed_command = "FORWARD"
-                        elif self.confirmed_command == "FORWARD" and raw_cmd == "IDLE":
+                                self.confirmed_command = raw_cmd
+                        elif self.confirmed_command != "IDLE" and raw_cmd == "IDLE":
                             if raw_command_streak["count"] >= self.RELEASE_THRESHOLD:
                                 self.confirmed_command = "IDLE"
+                        elif self.confirmed_command != "IDLE" and raw_cmd != "IDLE" and raw_cmd != self.confirmed_command:
+                            # Switching between non-IDLE commands requires confirmation too
+                            if raw_command_streak["count"] >= self.CONFIRM_THRESHOLD:
+                                self.confirmed_command = raw_cmd
 
                         self.last_command = self.confirmed_command
-                        self.last_conf = score_fwd if self.last_command == "FORWARD" else (1.0 - score_fwd)
+                        self.last_conf = smoothed.get(self.last_command, 0.0)
+                        forward_prob = smoothed.get("FORWARD", 0.0)
 
                         self.broadcast_data.update({
                             "command": self.last_command,
                             "confidence": float(self.last_conf),
+                            "probabilities": {k: round(v, 4) for k, v in smoothed.items()},
                             "signal": self.signal_msg,
                             "fatigue": self.fatigue_state
                         })

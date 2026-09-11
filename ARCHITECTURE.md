@@ -1,6 +1,6 @@
 # ORBIT AI — Hybrid System Architecture (v3.0)
 
-ORBIT AI is a **Hybrid BCI wheelchair simulation system** combining clinical-grade brainwave analysis with a premium web-based virtual dashboard. It uses real EEG motor imagery data, MOABB FBCSP+LDA AI inference, and a Next.js 15 real-time web simulator — inspired by the TGAM NeuroSky Mindwave wheelchair project.
+ORBIT AI is a **Hybrid BCI prosthetic arm simulation system** combining clinical-grade brainwave analysis with a premium web-based virtual dashboard. It uses real EEG motor imagery data, MOABB FBCSP+LDA AI inference, and a Next.js 15 real-time web simulator — inspired by the TGAM NeuroSky Mindwave prosthetic arm project.
 
 ---
 
@@ -63,7 +63,7 @@ flowchart LR
     classDef wheel fill:#1e3a5f,stroke:#2196f3,stroke-width:2px,color:#fff
 
     subgraph EEG_TASKS["Mental Tasks (EEG)"]
-        M1("Imagine Moving<br/>Both Feet"):::eeg -->|"Cz Beta ↑"| C1["FORWARD"]:::cmd
+        M1("Imagine Moving<br/>Both Feet"):::eeg -->|"Cz Beta ↑"| C1["LIFT"]:::cmd
         M2("Imagine<br/>Left Hand"):::eeg -->|"C4 α/β shift"| C2["LEFT"]:::cmd
         M3("Imagine<br/>Right Hand"):::eeg -->|"C3 α/β shift"| C3["RIGHT"]:::cmd
         M4("Relaxed,<br/>Eyes Open"):::eeg -->|"α Dominance"| C4["IDLE"]:::cmd
@@ -73,7 +73,7 @@ flowchart LR
         P1("Jaw Clench<br/>/ Bite"):::emg -->|"Spike >100μV"| C5["EMERGENCY<br/>STOP"]:::emg
     end
 
-    WC(("🦽 Wheelchair<br/>Motor")):::wheel
+    WC(("🦽 Prosthetic Arm<br/>Motor")):::wheel
 
     C1 --> WC
     C2 --> WC
@@ -84,7 +84,7 @@ flowchart LR
 
 | Command | Signal | Mental / Physical Task | Bio-Marker | Latency |
 |---------|--------|------------------------|------------|---------|
-| **FORWARD** | 🧠 EEG | Imagine moving both feet | Cz Central Beta Power ↑ | ~1s window |
+| **LIFT** | 🧠 EEG | Imagine moving both feet | Cz Central Beta Power ↑ | ~1s window |
 | **LEFT** | 🧠 EEG | Imagine squeezing left hand | C4 Alpha/Beta shift | ~1s window |
 | **RIGHT** | 🧠 EEG | Imagine squeezing right hand | C3 Alpha/Beta shift | ~1s window |
 | **IDLE** | 🧠 EEG | Relaxed state, eyes open | Alpha power dominance | ~1s window |
@@ -290,13 +290,13 @@ flowchart TD
     end
 
     subgraph OUTPUT["Output"]
-        ARENA["Virtual Wheelchair Arena<br/>(Terminal TUI or Web Dashboard)"]:::output
+        ARENA["Virtual Prosthetic Arm Arena<br/>(Terminal TUI or Web Dashboard)"]:::output
         ORBIT_LOG["Orbit Logger<br/>(logger_orbit.py · daily CSV)"]:::output
         REPORT["Auto Report<br/>(auto_report.py · PDF)"]:::output
     end
 
     SOCK -->|"Stream"| G1
-    G5 -->|"FORWARD / LEFT / RIGHT / IDLE"| ARENA
+    G5 -->|"LIFT / LEFT / RIGHT / IDLE"| ARENA
     G5 --> ORBIT_LOG
     ORBIT_LOG --> REPORT
 ```
@@ -340,7 +340,7 @@ wheelchair-simulator/
 │   │   ├── globals.css       ← Design system: CSS variables, dark-first, glassmorphism
 │   │   └── page.tsx          ← Dashboard page: WebSocket client, state, layout
 │   ├── components/
-│   │   ├── Arena.tsx         ← Animated SVG wheelchair + grid + glow effects
+│   │   ├── Arena.tsx         ← Animated SVG prosthetic arm + grid + glow effects
 │   │   ├── StatusPanel.tsx   ← Live command, confidence, fatigue, session stats
 │   │   └── BrainPowerPanel.tsx ← Theta/Alpha/Beta animated power bars
 │   └── lib/
@@ -363,7 +363,7 @@ wheelchair-simulator/
 - **Base Color:** `#050A18` (deep navy dark)
 - **Accent:** `#38BDF8` (sky blue) + `#FB923C` (warm orange highlight)
 - **Glass Cards:** `bg-white/[0.03] border-white/[0.08] backdrop-blur-xl` with inset top-edge light catch
-- **Command Colors:** `#4ADE80` (FORWARD), `#F87171` (CRITICAL), `#FBBF24` (WARNING)
+- **Command Colors:** `#4ADE80` (LIFT), `#F87171` (CRITICAL), `#FBBF24` (WARNING)
 
 ---
 
@@ -373,7 +373,7 @@ wheelchair-simulator/
 
 | File | Role | Details |
 |------|------|---------|
-| `simulate_tgam.py` | Simulator Interface | Streams clinical EEG recordings over socket `127.0.0.1:9999`. Keyboard-controlled class selection (0=IDLE, 1=FORWARD). |
+| `simulate_tgam.py` | Simulator Interface | Streams clinical EEG recordings over socket `127.0.0.1:9999`. Keyboard-controlled class selection (0=IDLE, 1=LIFT). |
 | `bridge_bioamp.py` | Primary Hardware Bridge | Reads raw EEG/EXG from BioAmp EXG Pill via USB serial. Applies 45Hz filter. Broadcasts over socket. |
 | `bridge_ad8232.py` | Budget Hardware Bridge | Reads from AD8232 via Arduino. Applies custom bandpass filter. Replicates single input to 64-channel matrix. |
 
@@ -390,7 +390,7 @@ wheelchair-simulator/
 | File | Role | Details |
 |------|------|---------|
 | `model.py` | Neural Network Definitions | Bidirectional LSTM with Self-Attention + CNN-LSTM hybrid (Conv1D→BiLSTM→FC). |
-| `train.py` | Deep Learning Trainer (Legacy) | Binary IDLE/FORWARD training. 50 epochs, AdamW, cosine annealing. |
+| `train.py` | Deep Learning Trainer (Legacy) | Binary IDLE/LIFT training. 50 epochs, AdamW, cosine annealing. |
 | `train_moabb.py` | ML Trainer (Primary) | MOABB framework. PhysioNet + BNCI datasets. Auto-selects best pipeline (MDM vs LDA vs SVM). |
 | `fine_tune.py` | Transfer Learning | Freezes feature layers, fine-tunes classifier on personal data at low LR. |
 | `calibrate.py` | Personal Profiler | 45-second guided session measuring α baseline, θ ratio, β reactivity, blink strength. |
@@ -411,7 +411,7 @@ wheelchair-simulator/
 |------|------|---------|
 | `predict_realtime.py` | Terminal BCI Dashboard | Listens to streaming bridge, applies 5 safety gates, runs inference, renders Rich TUI arena. |
 | `predict_websocket.py` | Web BCI Server (v7.0) | Same inference pipeline as `predict_realtime.py`, broadcasts state over WebSocket `ws://localhost:8765` for the Next.js dashboard. |
-| `wheelchair-simulator/` | Next.js 15 Frontend | Visual wheelchair arena, brain power panel, and status dashboard. Connects to `predict_websocket.py`. |
+| `wheelchair-simulator/` | Next.js 15 Frontend | Visual prosthetic arm arena, brain power panel, and status dashboard. Connects to `predict_websocket.py`. |
 
 ### Configuration & Documentation
 
@@ -431,7 +431,7 @@ wheelchair-simulator/
 ```
 simulate_tgam.py  →(socket 9999)→  predict_realtime.py --demo
       ↑                              OR predict_websocket.py → Next.js dashboard
- (Keyboard: 0=IDLE, 1=FORWARD)
+ (Keyboard: 0=IDLE, 1=LIFT)
 ```
 Uses real clinical EEG patterns from PhysioNet — scientifically valid demo without hardware.
 
@@ -458,7 +458,7 @@ Switch modes by changing `SERIAL_PORT` in `config.py` and removing `--demo`.
 | **1. Signal Quality** | RMS amplitude > electrode-contact threshold | Command blocked | Instant |
 | **2. Warm-Up** | 2-minute brain-settle period elapsed | Command blocked | N/A (timer) |
 | **3. Fatigue** | θ/(α+β) ratio below drowsiness limit | Speed reduced / alert issued | Continuous monitoring |
-| **4. EMG Stop** | Jaw-clench spike > 100μV | Immediate wheelchair halt | **< 100ms** |
+| **4. EMG Stop** | Jaw-clench spike > 100μV | Immediate prosthetic arm halt | **< 100ms** |
 | **5. Smoothing** | Weighted majority voting over last 3 predictions | Prevents jitter / flickering | Per-prediction |
 
 ---
@@ -467,7 +467,7 @@ Switch modes by changing `SERIAL_PORT` in `config.py` and removing `--demo`.
 
 | Metric | Value | Condition |
 |--------|-------|-----------|
-| **Validation Accuracy** | 83.71% | IDLE vs. FORWARD, 21-channel FBCSP+LDA (data leakage resolved & artifact rejection) |
+| **Validation Accuracy** | 83.71% | IDLE vs. LIFT, 21-channel FBCSP+LDA (data leakage resolved & artifact rejection) |
 | **Cross-Validation** | 5-Fold Stratified | Best pipeline auto-selected |
 | **Inference Latency** | < 100ms | Socket receive → prediction → display |
 | **EMG Stop Latency** | < 100ms | Jaw-clench to STOP command |
@@ -484,7 +484,7 @@ Switch modes by changing `SERIAL_PORT` in `config.py` and removing `--demo`.
 | **2. Training** | Build the "Universal Brain" — auto-selects best pipeline via ensemble search | `train_moabb.py` (primary), `train.py` (legacy CNN-LSTM) | `universal_brain.pkl`, `best_model.pth` |
 | **3. Calibration** | 45-second personal profiling + optional data collection & fine-tuning | `calibrate.py`, `collect_data.py`, `fine_tune.py` | `personal_profile.json` |
 | **4. Signal Bridge** | Connect hardware (BioAmp / AD8232) or run simulator → stream to Port 9999 | `bridge_bioamp.py`, `bridge_ad8232.py`, `simulate_tgam.py` | TCP socket stream |
-| **5. Live Inference** | 5-layer safety gate → Riemannian AI → weighted voting → wheelchair command | `predict_realtime.py` or `predict_websocket.py` | TUI dashboard or web dashboard |
+| **5. Live Inference** | 5-layer safety gate → Riemannian AI → weighted voting → prosthetic arm command | `predict_realtime.py` or `predict_websocket.py` | TUI dashboard or web dashboard |
 | **6. Diagnostics** | Evaluate accuracy, log sessions, generate post-session reports | `evaluate.py`, `diagnose.py`, `logger_orbit.py`, `auto_report.py` | Reports, CSVs, PDFs, confusion matrices |
 
 ---
@@ -520,7 +520,7 @@ flowchart TD
     M1 -->|"Loads (read-only)"| PRED
     DRIFT -->|"Loads offsets (optional)"| THRESH
     PRED --> THRESH
-    THRESH -->|"FORWARD / IDLE"| CMD["Wheelchair Command"]:::safe
+    THRESH -->|"LIFT / IDLE"| CMD["Prosthetic Arm Command"]:::safe
 
     subgraph SAFETY["Safety Guarantees"]
         S1["Model 1 file: READ-ONLY<br/>adapt_drift.py never imports it"]:::safe
@@ -533,7 +533,7 @@ flowchart TD
 
 | Parameter | What It Does | Safety Bounds |
 |-----------|-------------|---------------|
-| `confidence_threshold_offset` | Lowers/raises the FORWARD confidence threshold | [-0.15, +0.10] |
+| `confidence_threshold_offset` | Lowers/raises the LIFT confidence threshold | [-0.15, +0.10] |
 | `fatigue_threshold_scale` | Scales the drowsiness detection limit | [0.70×, 1.50×] |
 | `signal_quality_floor_scale` | Adjusts minimum signal strength required | [0.60×, 1.20×] |
 | `biosensor_center_offset` | Shifts the BioSensor fallback baseline | [-0.50, +0.50] |

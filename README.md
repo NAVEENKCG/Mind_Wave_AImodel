@@ -6,9 +6,9 @@
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-**ORBIT AI** is an open-source **Brain-Computer Interface** designed for medical wheelchair control. It uses a **Hybrid BCI-EMG** architecture — EEG-based neural decoding for movement commands, and EMG-based jaw-clench detection for instant emergency stop.
+**ORBIT AI** is an open-source **Brain-Computer Interface** designed for medical prosthetic arm control. It uses a **Hybrid BCI-EMG** architecture — EEG-based neural decoding for movement commands, and EMG-based jaw-clench detection for instant emergency stop.
 
-> **83.71% accuracy** on IDLE vs. FORWARD classification using Riemannian FBCSP+LDA · **< 100ms** emergency stop via jaw-clench EMG · **95-second** personal calibration
+> **83.71% accuracy** on IDLE vs. LIFT classification using Riemannian FBCSP+LDA · **< 100ms** emergency stop via jaw-clench EMG · **95-second** personal calibration
 
 ---
 
@@ -28,13 +28,13 @@ Traditional assistive technologies — joysticks, sip-and-puff controllers, eye-
 
 ### Our Mission
 
-To build an **open-source, medically safe, and universally accessible** Brain-Computer Interface that translates raw neural signals into reliable wheelchair commands — and to make it available to **everyone**, not just those who can afford proprietary clinical systems costing $50,000+.
+To build an **open-source, medically safe, and universally accessible** Brain-Computer Interface that translates raw neural signals into reliable prosthetic arm commands — and to make it available to **everyone**, not just those who can afford proprietary clinical systems costing $50,000+.
 
 ### Core Design Principles
 
 | Principle | What It Means in Practice |
 | :--- | :--- |
-| 🛡️ **Safety Above All** | No wheelchair command is ever issued without passing a 5-layer security pipeline. A single jaw clench halts everything in under 100ms. The system would rather **do nothing** than do the wrong thing. |
+| 🛡️ **Safety Above All** | No prosthetic arm command is ever issued without passing a 5-layer security pipeline. A single jaw clench halts everything in under 100ms. The system would rather **do nothing** than do the wrong thing. |
 | ♿ **Radical Accessibility** | The entire system costs under **₹5,000** (~$60) in hardware. The software is MIT-licensed and runs on consumer laptops. No hospital visit required. No proprietary lock-in. |
 | 🧬 **Open Science, Open Code** | Every algorithm, every dataset reference, every training pipeline is public. We publish our research paper ([RND_PAPER.md](./RND_PAPER.md)) alongside our code — because breakthroughs locked behind paywalls don't save lives. |
 | 🧠 **The Brain Adapts, So Must We** | No two brains are identical. ORBIT AI trains on a "Universal Brain" model from clinical datasets, then personalizes through a 95-second calibration. The system adapts to **you**, not the other way around. |
@@ -49,13 +49,13 @@ We use a **"Safety-First"** dual-modality strategy — mental tasks for directio
 
 | Command | Signal | Mental / Physical Task | Brain Bio-Marker |
 | :--- | :--- | :--- | :--- |
-| **FORWARD** | 🧠 EEG | Imagine moving both feet | Cz Central Beta Power ↑ |
+| **LIFT** | 🧠 EEG | Imagine moving both feet | Cz Central Beta Power ↑ |
 | **LEFT** | 🧠 EEG | Imagine squeezing left hand | C4 Alpha/Beta shift |
 | **RIGHT** | 🧠 EEG | Imagine squeezing right hand | C3 Alpha/Beta shift |
 | **IDLE** | 🧠 EEG | Relaxed state, eyes open | Alpha power dominance |
 | **STOP** | 💪 EMG | **Jaw clench (bite teeth)** | High-frequency spike >100μV |
 
-> **Note:** The current system classifies **2 commands** (IDLE vs. FORWARD). LEFT, RIGHT, and EMG-STOP are implemented in the hardware bridge (`bridge_bioamp.py`) but are not yet supported by the trained Riemannian model. See [Future Roadmap](#-future-roadmap) for the plan to expand to 4-class classification.
+> **Note:** The current system classifies **2 commands** (IDLE vs. LIFT). LEFT, RIGHT, and EMG-STOP are implemented in the hardware bridge (`bridge_bioamp.py`) but are not yet supported by the trained Riemannian model. See [Future Roadmap](#-future-roadmap) for the plan to expand to 4-class classification.
 
 ---
 
@@ -97,7 +97,7 @@ python demo_mode.py
 | **AI Core — Legacy** | PyTorch CNN-LSTM (Conv1D → BiLSTM → FC) — **not used in live inference** |
 | **Safety** | 5-Layer Gate Pipeline (Signal Quality · Warm-Up · Fatigue · EMG Stop · Voting) |
 | **Interface — Terminal** | Real-time TUI dashboard with Python `Rich` |
-| **Interface — Web** | Next.js wheelchair simulator dashboard via WebSocket |
+| **Interface — Web** | Next.js prosthetic arm simulator dashboard via WebSocket |
 | **Diagnostics** | Session logging (100ms telemetry), auto-generated reports |
 
 ---
@@ -120,7 +120,7 @@ flowchart TD
     subgraph T3["Tier 3 — Safety & Control"]
         GATE["5-Layer Safety Gate"]
         GATE --> TUI["TUI Dashboard"]
-        GATE --> WC["Wheelchair Action"]
+        GATE --> WC["Prosthetic Arm Action"]
     end
 
     MCU -->|"USB Serial @ 115200"| COV
@@ -168,11 +168,11 @@ Raw EEG (21 motor-cortex channels × 160 samples = 1 second)
 ┌────────────────────────────────────────────┐
 │  4. LDA CLASSIFIER                         │
 │     Draws a linear boundary to separate    │
-│     IDLE from FORWARD                      │
+│     IDLE from LIFT                      │
 │     + Platt-calibrated probability output  │
 └──────────────────┬─────────────────────────┘
                    ▼
-             IDLE or FORWARD
+             IDLE or LIFT
              (with confidence %)
 ```
 
@@ -188,13 +188,13 @@ Raw EEG (21 motor-cortex channels × 160 samples = 1 second)
 
 **Key training details** (in `train_moabb.py`):
 - **Dataset:** PhysioNet EEGMMIDB — 10 subjects, 21 motor-cortex channels (sensorimotor strip: FC5–FC6, C5–C6, CP5–CP6)
-- **Motor imagery runs:** R04, R06, R08, R10, R12, R14 → FORWARD class
+- **Motor imagery runs:** R04, R06, R08, R10, R12, R14 → LIFT class
 - **Rest baseline runs:** R01, R02 → IDLE class
 - **Architecture tournament:** MDM, TS+LDA, and FBCSP+LDA compete in 5-fold stratified CV — winner auto-selected
 - **Augmentation:** Time-jitter (±25 samples), applied **inside** CV folds only (no data leakage)
 - **Artifact rejection:** Epochs with >100µV peak-to-peak discarded (>25% bad channels)
 - **Calibration:** Platt scaling on held-out 15% set for well-calibrated probabilities
-- **Output:** Binary — IDLE (0) vs FORWARD (1), saved as `models/moabb_csp_lda.pkl`
+- **Output:** Binary — IDLE (0) vs LIFT (1), saved as `models/moabb_csp_lda.pkl`
 
 ---
 
@@ -210,12 +210,12 @@ When using the physical BioAmp EXG Pill (which only has 2 channels: C3 and C4), 
 C3/C4 raw → Bandpass (1–45 Hz, stateful SOS filter)
   → Welch PSD (Mu+Beta: 8–30 Hz)
   → ERD% = (baseline − live) / baseline
-  → 4-way threshold classifier (FORWARD / LEFT / RIGHT / IDLE)
+  → 4-way threshold classifier (LIFT / LEFT / RIGHT / IDLE)
   → EMG fast-path: jaw clench detection on every sample (< 100ms)
 ```
 
 - **No ML model** — pure signal processing with calibrated thresholds
-- **FORWARD inference:** Bilateral symmetry — C3 and C4 both desynchronize equally
+- **LIFT inference:** Bilateral symmetry — C3 and C4 both desynchronize equally
 - **LEFT/RIGHT:** Contralateral ERD (left hand imagery → C4 desynchronization, right hand → C3)
 
 #### BioSensor Fallback (`predict_realtime.py` / `predict_websocket.py`)
@@ -326,7 +326,7 @@ npm run dev
 ```
 
 Then open http://localhost:3000 in your browser to see the 
-live wheelchair arena, brain power panel, and status dashboard.
+live prosthetic arm arena, brain power panel, and status dashboard.
 
 #### For Real Hardware (instead of simulate_tgam.py)
 
@@ -345,7 +345,7 @@ python predict_realtime.py
 
 ## 🛡️ 5-Layer Safety Pipeline
 
-The `predict_realtime.py` and `predict_websocket.py` engines implement sequential security checks before any wheelchair command is issued:
+The `predict_realtime.py` and `predict_websocket.py` engines implement sequential security checks before any prosthetic arm command is issued:
 
 | Gate | Check | Action on Failure |
 |------|-------|-------------------|
@@ -353,7 +353,7 @@ The `predict_realtime.py` and `predict_websocket.py` engines implement sequentia
 | **2. Warm-Up** | 5-second "Brain-Settle" period elapsed (0 in demo mode) | Command blocked |
 | **3. Fatigue Monitor** | θ/(α+β) ratio below drowsiness limit (from personal profile) | Speed reduced / alert / CRITICAL halt |
 | **4. EMG Emergency Stop** | Jaw clench spike > 100μV (via `bridge_bioamp.py`) | Immediate halt (< 100ms) |
-| **5. Hysteresis Voting** | 3 consecutive FORWARD predictions to engage; 1 IDLE to release (safety-biased) | Prevents jitter/flickering |
+| **5. Hysteresis Voting** | 3 consecutive LIFT predictions to engage; 1 IDLE to release (safety-biased) | Prevents jitter/flickering |
 
 ---
 
@@ -361,7 +361,7 @@ The `predict_realtime.py` and `predict_websocket.py` engines implement sequentia
 
 | Metric | Value | Condition |
 |--------|-------|-----------|
-| **Validation Accuracy** | 83.71% | IDLE vs. FORWARD, 21-channel FBCSP+LDA (leakage-free CV + artifact rejection) |
+| **Validation Accuracy** | 83.71% | IDLE vs. LIFT, 21-channel FBCSP+LDA (leakage-free CV + artifact rejection) |
 | **Cross-Validation** | 5-Fold Stratified | Best pipeline auto-selected from MDM / TS+LDA / FBCSP+LDA |
 | **Inference Latency** | < 100ms | Socket → prediction → display |
 | **EMG Stop Latency** | < 100ms | Jaw-clench → STOP command |
@@ -415,7 +415,7 @@ Mind_Wave_AImodel/
 ├── CHANGELOG.md                    # Version history
 │
 ├── # ── Web Dashboard ─────────────────────────────
-├── wheelchair-simulator/           # Next.js virtual wheelchair dashboard
+├── wheelchair-simulator/           # Next.js virtual prosthetic arm dashboard
 │   ├── src/app/page.tsx            # Main dashboard page
 │   └── ...
 │
@@ -433,7 +433,7 @@ Mind_Wave_AImodel/
 ## 🔮 Future Roadmap
 
 ### What We're Doing Now (v3.0)
-- ✅ Binary classification: **IDLE vs. FORWARD** from motor imagery EEG
+- ✅ Binary classification: **IDLE vs. LIFT** from motor imagery EEG
 - ✅ Riemannian FBCSP+LDA pipeline trained on 10 PhysioNet subjects (83.71% CV accuracy)
 - ✅ 5-layer safety gate pipeline with fatigue monitoring
 - ✅ EMG emergency stop via jaw-clench detection (< 100ms)
@@ -467,9 +467,9 @@ python adapt_drift.py --reset
 The drift engine reads your accumulated session logs from `logs/`, detects trends (declining confidence, signal amplitude changes, increased fatigue events), and writes threshold adjustments to `models/drift_profile.json`. Both `predict_realtime.py` and `predict_websocket.py` automatically load this file on startup. Deleting `drift_profile.json` instantly reverts to original Model 1 behavior.
 
 ### What's Coming Next
-1. **4-Class Navigation** — Expand from IDLE/FORWARD to FORWARD/LEFT/RIGHT/STOP using multi-class Riemannian classifiers (the ERD classifier in `bridge_bioamp.py` already supports this at the signal level)
+1. **4-Class Navigation** — Expand from IDLE/LIFT to LIFT/LEFT/RIGHT/STOP using multi-class Riemannian classifiers (the ERD classifier in `bridge_bioamp.py` already supports this at the signal level)
 2. **EEGNet Integration** — Replace the channel-dependent Riemannian pipeline with a channel-agnostic compact CNN (EEGNet) to unify the 21-channel simulator path and the 2-channel hardware path into a single model
-3. **Real-World Motor Integration** — Connect to physical wheelchair motors via CAN bus or ROS2
+3. **Real-World Motor Integration** — Connect to physical prosthetic arm motors via CAN bus or ROS2
 4. **Edge Deployment** — Port inference to Raspberry Pi / Jetson Nano for portable, offline use
 5. **Online Domain Adaptation (Advanced)** — Continuous real-time model weight adaptation during use (the Drift Engine handles threshold-level adaptation offline; this would add live weight updates)
 6. **Multi-Modal Fusion** — Combine EEG with eye-tracking and head gestures for richer command sets
@@ -528,7 +528,7 @@ These are required by `train_moabb.py`. Run:
 
 ## ⚠️ Safety Notice
 
-> **ORBIT AI is a research prototype.** It has **not** been certified by any medical device regulatory authority (e.g., FDA, CE). Do not use as the sole control mechanism for a powered wheelchair without additional mechanical safety systems (e.g., bump sensors, dead-man switch).
+> **ORBIT AI is a research prototype.** It has **not** been certified by any medical device regulatory authority (e.g., FDA, CE). Do not use as the sole control mechanism for a powered prosthetic arm without additional mechanical safety systems (e.g., bump sensors, dead-man switch).
 
 ---
 
