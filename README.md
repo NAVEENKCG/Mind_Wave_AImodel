@@ -1,14 +1,15 @@
-# 🧠 ORBIT AI — Universal BCI System (v3.0)
+# 🧠 ORBIT AI — Universal BCI System (v3.1)
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python)
 ![PyRiemann](https://img.shields.io/badge/PyRiemann-Riemannian_BCI-orange)
 ![MOABB](https://img.shields.io/badge/MOABB-1.1-green)
+![Stage](https://img.shields.io/badge/Stage-4--Class%20Motor%20Imagery%20%2B%20Dual--Model-blueviolet)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-**ORBIT AI** is an open-source **Brain-Computer Interface** designed for medical prosthetic arm control. It uses a **Hybrid BCI-EMG** architecture — EEG-based neural decoding for movement commands, and EMG-based jaw-clench detection for instant emergency stop.
+**ORBIT AI** is an open-source **Brain-Computer Interface** designed for medical prosthetic arm control. It uses a **Hybrid BCI-EMG** architecture — EEG-based neural decoding for multi-class movement commands, and EMG-based jaw-clench detection for instant emergency stop.
 
-> **83.71% accuracy** on IDLE vs. LIFT classification using Riemannian FBCSP+LDA · **< 100ms** emergency stop via jaw-clench EMG · **95-second** personal calibration
+> **4-Class Motor Imagery** (IDLE, LEFT, RIGHT, FORWARD/LIFT) via Riemannian FBCSP+LDA · **Model 2** Adaptive Neural Drift Engine · **< 100ms** emergency stop via jaw-clench EMG · **95-second** personal calibration
 
 ---
 
@@ -38,7 +39,7 @@ To build an **open-source, medically safe, and universally accessible** Brain-Co
 | ♿ **Radical Accessibility** | The entire system costs under **₹5,000** (~$60) in hardware. The software is MIT-licensed and runs on consumer laptops. No hospital visit required. No proprietary lock-in. |
 | 🧬 **Open Science, Open Code** | Every algorithm, every dataset reference, every training pipeline is public. We publish our research paper ([RND_PAPER.md](./RND_PAPER.md)) alongside our code — because breakthroughs locked behind paywalls don't save lives. |
 | 🧠 **The Brain Adapts, So Must We** | No two brains are identical. ORBIT AI trains on a "Universal Brain" model from clinical datasets, then personalizes through a 95-second calibration. The system adapts to **you**, not the other way around. |
-| 🤝 **Human Dignity First** | This is not a tech demo. Every design decision — from the fatigue monitor that slows the chair when you're tired, to the warm-up gate that waits until your brain signals stabilize — treats the user as a **person**, not a data source. |
+| 🤝 **Human Dignity First** | This is not a tech demo. Every design decision — from the fatigue monitor that slows prosthetic arm motion when you're tired, to the warm-up gate that waits until your brain signals stabilize — treats the user as a **person**, not a data source. |
 | ⚡ **Hybrid Intelligence** | We don't rely on a single signal. EEG provides the intention. EMG provides the emergency brake. AI provides the pattern recognition. Redundancy is not overhead — it is **survival engineering**. |
 
 ---
@@ -49,13 +50,13 @@ We use a **"Safety-First"** dual-modality strategy — mental tasks for directio
 
 | Command | Signal | Mental / Physical Task | Brain Bio-Marker |
 | :--- | :--- | :--- | :--- |
-| **LIFT** | 🧠 EEG | Imagine moving both feet | Cz Central Beta Power ↑ |
+| **LIFT / FORWARD** | 🧠 EEG | Imagine moving both feet | Cz Central Beta Power ↑ |
 | **LEFT** | 🧠 EEG | Imagine squeezing left hand | C4 Alpha/Beta shift |
 | **RIGHT** | 🧠 EEG | Imagine squeezing right hand | C3 Alpha/Beta shift |
 | **IDLE** | 🧠 EEG | Relaxed state, eyes open | Alpha power dominance |
 | **STOP** | 💪 EMG | **Jaw clench (bite teeth)** | High-frequency spike >100μV |
 
-> **Note:** The current system classifies **2 commands** (IDLE vs. LIFT). LEFT, RIGHT, and EMG-STOP are implemented in the hardware bridge (`bridge_bioamp.py`) but are not yet supported by the trained Riemannian model. See [Future Roadmap](#-future-roadmap) for the plan to expand to 4-class classification.
+> **Current Stage:** The active Riemannian ML pipeline (`train_moabb.py`), live TUI (`predict_realtime.py`), and WebSocket server (`predict_websocket.py`) classify all **4 motor imagery classes** (`IDLE`, `LEFT`, `RIGHT`, `FORWARD`/`LIFT`). Hardware emergency stop (`STOP`) is handled via fast-path EMG jaw-clench detection in under 100ms.
 
 ---
 
@@ -93,12 +94,13 @@ python demo_mode.py
 |-------|-----------|
 | **Hardware** | BioAmp EXG Pill (Gain ~1000×) / AD8232 (budget alt.) + ESP32/Arduino |
 | **Signal Processing** | MNE-Python (FIR filtering 0.5–50 Hz) + SciPy (Welch PSD, Butterworth filters) |
-| **AI Core — Active** | PyRiemann (Covariances → Tangent Space → LDA) with FBCSP 5-band feature extraction |
+| **AI Core — Active** | 4-Class PyRiemann (Covariances → Tangent Space → LDA) with FBCSP 5-band feature extraction |
+| **AI Core — Adaptive** | Adaptive Neural Drift Engine (Model 2) — offline drift detection & threshold auto-adjustment |
 | **AI Core — Legacy** | PyTorch CNN-LSTM (Conv1D → BiLSTM → FC) — **not used in live inference** |
 | **Safety** | 5-Layer Gate Pipeline (Signal Quality · Warm-Up · Fatigue · EMG Stop · Voting) |
-| **Interface — Terminal** | Real-time TUI dashboard with Python `Rich` |
-| **Interface — Web** | Next.js prosthetic arm simulator dashboard via WebSocket |
-| **Diagnostics** | Session logging (100ms telemetry), auto-generated reports |
+| **Interface — Terminal** | Real-time TUI dashboard with Python `Rich` (4-class display) |
+| **Interface — Web** | Next.js 15 Prosthetic Arm Simulator (`prosthetic-arm-simulator/`, port 3001) & Wheelchair Simulator (`wheelchair-simulator/`, port 3000) via WebSocket |
+| **Diagnostics** | Session logging (100ms telemetry), auto-generated reports, drift profiling |
 
 ---
 
@@ -166,14 +168,13 @@ Raw EEG (21 motor-cortex channels × 160 samples = 1 second)
 └──────────────────┬─────────────────────────┘
                    ▼
 ┌────────────────────────────────────────────┐
-│  4. LDA CLASSIFIER                         │
-│     Draws a linear boundary to separate    │
-│     IDLE from LIFT                      │
+│  4. MULTI-CLASS LDA CLASSIFIER             │
+│     Separates IDLE, LEFT, RIGHT, FORWARD   │
 │     + Platt-calibrated probability output  │
 └──────────────────┬─────────────────────────┘
                    ▼
-             IDLE or LIFT
-             (with confidence %)
+      IDLE / LEFT / RIGHT / FORWARD (LIFT)
+              (with confidence %)
 ```
 
 **Why Riemannian over CNN-LSTM?**
@@ -182,19 +183,22 @@ Raw EEG (21 motor-cortex channels × 160 samples = 1 second)
 |--------|-------------------|-------------------|
 | **Cross-user generalization** | ✅ Excellent — works on new users | ❌ Overfits to training subjects |
 | **Calibration needed** | 95-second profile | Hours of personal data |
-| **Validated accuracy** | **83.71%** (5-fold CV, leakage-free) | **Untested** (never formally evaluated) |
+| **Validated accuracy** | **83.71%** (binary baseline) / 4-Class active | **Untested** (never formally evaluated) |
 | **What it looks at** | Channel-to-channel relationships | Raw signal values over time |
 | **Inference speed** | Very fast (matrix math) | Slower (neural network forward pass) |
 
 **Key training details** (in `train_moabb.py`):
 - **Dataset:** PhysioNet EEGMMIDB — 10 subjects, 21 motor-cortex channels (sensorimotor strip: FC5–FC6, C5–C6, CP5–CP6)
-- **Motor imagery runs:** R04, R06, R08, R10, R12, R14 → LIFT class
-- **Rest baseline runs:** R01, R02 → IDLE class
+- **Motor imagery & rest mapping:**
+  - **Rest baseline runs:** R01, R02 → `IDLE` (0)
+  - **Left fist runs:** R03, R07, R11, R05, R09, R13 (T1 events) → `LEFT` (1)
+  - **Right fist runs:** R03, R07, R11, R05, R09, R13 (T2 events) → `RIGHT` (2)
+  - **Both feet runs:** R04, R08, R12, R06, R10, R14 (T2 events) → `FORWARD` / `LIFT` (3)
 - **Architecture tournament:** MDM, TS+LDA, and FBCSP+LDA compete in 5-fold stratified CV — winner auto-selected
 - **Augmentation:** Time-jitter (±25 samples), applied **inside** CV folds only (no data leakage)
 - **Artifact rejection:** Epochs with >100µV peak-to-peak discarded (>25% bad channels)
 - **Calibration:** Platt scaling on held-out 15% set for well-calibrated probabilities
-- **Output:** Binary — IDLE (0) vs LIFT (1), saved as `models/moabb_csp_lda.pkl`
+- **Output:** 4-Class model — saved as `models/moabb_csp_lda.pkl`
 
 ---
 
@@ -243,9 +247,10 @@ The Riemannian model is trained on 21-channel data, but the BioAmp bridge only p
 
 ### Algorithm Selection Summary
 
-| Engine | Status | Used When | Channels | Accuracy | File(s) |
-|--------|--------|-----------|----------|----------|---------|
-| **Riemannian FBCSP+LDA** | ✅ **Active** | Simulated data or ≥21ch hardware | 21 | 83.71% | `train_moabb.py` → `predict_realtime.py` / `predict_websocket.py` |
+| Engine | Status | Used When | Channels | Accuracy / Baseline | File(s) |
+|--------|--------|-----------|----------|---------------------|---------|
+| **Riemannian FBCSP+LDA** | ✅ **Active** | Simulated data or ≥21ch hardware (4-Class) | 21 | 83.71% binary / 4-Class active (25% chance) | `train_moabb.py` → `predict_realtime.py` / `predict_websocket.py` |
+| **Model 2 Drift Engine** | ✅ **Active** | Adaptive threshold correction over time | Telemetry | Offsets ±15% | `adapt_drift.py` → `models/drift_profile.json` |
 | **ERD Threshold** | ✅ **Active** | Real BioAmp hardware (2 channels) | 2 (C3, C4) | ~70% est. | `bridge_bioamp.py` |
 | **BioSensor Fallback** | ⚠️ **Fallback** | No trained model file found | Any | ~60% est. | `predict_realtime.py` / `predict_websocket.py` |
 | **CNN-LSTM** | ❌ **Inactive** | Not loaded by any live script | 18 features | Untested | `model.py` + `train.py` |
@@ -260,8 +265,14 @@ The Riemannian model is trained on 21-channel data, but the BioAmp bridge only p
 pip install -r requirements.txt
 ```
 
-For the web dashboard, also install Node.js dependencies:
+For the web dashboards, install Node.js dependencies:
 ```bash
+# Prosthetic Arm Simulator (Recommended)
+cd prosthetic-arm-simulator
+npm install
+cd ..
+
+# Virtual Wheelchair Simulator
 cd wheelchair-simulator
 npm install
 cd ..
@@ -319,14 +330,18 @@ Terminal 2:
 python predict_websocket.py
 ```
 
-Terminal 3:
+Terminal 3 (Choose your visual simulator):
 ```bash
+# Option 1: Dedicated Prosthetic Arm Simulator (Recommended)
+cd prosthetic-arm-simulator
+npm run dev
+# Open http://localhost:3001
+
+# Option 2: Virtual Wheelchair Simulator
 cd wheelchair-simulator
 npm run dev
+# Open http://localhost:3000
 ```
-
-Then open http://localhost:3000 in your browser to see the 
-live prosthetic arm arena, brain power panel, and status dashboard.
 
 #### For Real Hardware (instead of simulate_tgam.py)
 
@@ -414,33 +429,44 @@ Mind_Wave_AImodel/
 ├── RND_PAPER.md                    # Full R&D paper with 23 academic references
 ├── CHANGELOG.md                    # Version history
 │
-├── # ── Web Dashboard ─────────────────────────────
-├── wheelchair-simulator/           # Next.js virtual prosthetic arm dashboard
+├── # ── Web Dashboards ─────────────────────────────
+├── prosthetic-arm-simulator/       # Next.js 15 dedicated robotic arm dashboard (port 3001)
+│   ├── src/app/page.tsx            # Interactive SVG articulated arm with spring physics
+│   └── ...
+├── wheelchair-simulator/           # Next.js virtual wheelchair dashboard (port 3000)
 │   ├── src/app/page.tsx            # Main dashboard page
 │   └── ...
 │
 ├── data/                           # Training data (.npy, .csv, .edf, cached epochs)
-├── models/                         # Saved models
-│   ├── moabb_csp_lda.pkl           # ✅ Active Riemannian model (~43 MB)
+├── models/                         # Saved models & profiles
+│   ├── moabb_csp_lda.pkl           # ✅ Active 4-class Riemannian model (~43 MB)
+│   ├── drift_profile.json          # 🧬 Adaptive Neural Drift Engine (Model 2) profile
+│   ├── personal_profile.json       # Personal calibration data (after running calibrate.py)
 │   ├── best_model.pth              # ❌ Legacy CNN-LSTM weights (not loaded at runtime)
-│   └── personal_profile.json      # Personal calibration data (after running calibrate.py)
+│   ├── model1/                     # Universal Brain base model storage
+│   ├── model2/                     # Adaptive Neural Drift engine storage
+│   └── prosthetic arm model/       # Specialized prosthetic arm model artifacts
 ├── logs/                           # Session logs (CSV telemetry)
 └── notebooks/                      # Jupyter notebooks
 ```
 
 ---
 
-## 🔮 Future Roadmap
+## 🔮 Project Status & Roadmap
 
-### What We're Doing Now (v3.0)
-- ✅ Binary classification: **IDLE vs. LIFT** from motor imagery EEG
-- ✅ Riemannian FBCSP+LDA pipeline trained on 10 PhysioNet subjects (83.71% CV accuracy)
-- ✅ 5-layer safety gate pipeline with fatigue monitoring
-- ✅ EMG emergency stop via jaw-clench detection (< 100ms)
-- ✅ 95-second personal calibration
-- ✅ Dual interface: Terminal TUI dashboard + Next.js web dashboard
-- ✅ EEG stream simulator for development without hardware
-- ✅ **Adaptive Neural Drift Engine (Model 2)** — detects brain signal degradation over time and auto-adjusts thresholds without modifying the original model
+### 📍 Current Stage (v3.1 — Active)
+The system is operating at the **4-Class Motor Imagery & Dual-Model BCI System** stage:
+
+- ✅ **4-Class Motor Imagery Decoding**: Upgraded core Riemannian FBCSP+LDA pipeline (`train_moabb.py`) from binary to 4-class classification (`IDLE`, `LEFT`, `RIGHT`, `FORWARD`/`LIFT`) using PhysioNet EEGMMIDB motor execution and imagery runs.
+- ✅ **Two-Model Architecture (Model 1 & Model 2)**:
+  - **Model 1 (Universal Brain)**: `models/moabb_csp_lda.pkl` — trained once on 10 PhysioNet clinical subjects across 21 motor-cortex channels; strictly read-only at runtime.
+  - **Model 2 (Adaptive Neural Drift Engine)**: `adapt_drift.py` + `models/drift_profile.json` — performs longitudinal telemetry analysis (`logs/`), calculating EWMA confidence degradation and linear regression slopes to auto-calibrate threshold offsets without altering base model weights.
+- ✅ **Dedicated Prosthetic Arm Simulator**: Fully articulated robotic arm dashboard (`prosthetic-arm-simulator/`, port 3001) built with Next.js 15, Framer Motion spring physics, multi-joint SVG arm rendering, live brain power spectrum, and WebSocket telemetry (`ws://localhost:8765`).
+- ✅ **Dual-Simulator Ecosystem**: Complete support for both robotic prosthetic arm simulation (port 3001) and virtual wheelchair simulation (`wheelchair-simulator/`, port 3000).
+- ✅ **Modular Model Storage**: Structured directory layout with `models/model1/`, `models/model2/`, and `models/prosthetic arm model/`.
+- ✅ **5-Layer Medical Safety Pipeline**: Signal Quality RMS Check → 5s Warm-Up Stabilization → Drowsiness/Fatigue Ratio Monitoring → Fast-Path Jaw Clench EMG Emergency Stop (< 100ms) → Multi-Prediction Hysteresis Voting.
+- ✅ **95-Second Guided Personal Calibration**: Guided calibration session (`calibrate.py`) for personalizing alpha/beta baselines and fatigue thresholds.
+- ✅ **Unified Live Prediction Stack**: Real-time Rich TUI dashboard (`predict_realtime.py`) and WebSocket server (`predict_websocket.py`) supporting 4-class predictions.
 
 ### 🧬 Adaptive Drift Engine (Model 2)
 
@@ -466,15 +492,13 @@ python adapt_drift.py --reset
 
 The drift engine reads your accumulated session logs from `logs/`, detects trends (declining confidence, signal amplitude changes, increased fatigue events), and writes threshold adjustments to `models/drift_profile.json`. Both `predict_realtime.py` and `predict_websocket.py` automatically load this file on startup. Deleting `drift_profile.json` instantly reverts to original Model 1 behavior.
 
-### What's Coming Next
-1. **4-Class Navigation** — Expand from IDLE/LIFT to LIFT/LEFT/RIGHT/STOP using multi-class Riemannian classifiers (the ERD classifier in `bridge_bioamp.py` already supports this at the signal level)
-2. **EEGNet Integration** — Replace the channel-dependent Riemannian pipeline with a channel-agnostic compact CNN (EEGNet) to unify the 21-channel simulator path and the 2-channel hardware path into a single model
-3. **Real-World Motor Integration** — Connect to physical prosthetic arm motors via CAN bus or ROS2
-4. **Edge Deployment** — Port inference to Raspberry Pi / Jetson Nano for portable, offline use
-5. **Online Domain Adaptation (Advanced)** — Continuous real-time model weight adaptation during use (the Drift Engine handles threshold-level adaptation offline; this would add live weight updates)
-6. **Multi-Modal Fusion** — Combine EEG with eye-tracking and head gestures for richer command sets
-7. **Clinical Trials** — Partner with rehabilitation centers for real-world validation with ALS and SCI patients
-8. **Federated Learning** — Improve the universal model across users without centralizing raw EEG data
+### 🚀 What's Coming Next
+1. **Channel-Agnostic Deep Learning (EEGNet)** — Implement a compact EEGNet architecture to bridge the gap between 21-channel clinical data and 2-channel BioAmp EXG Pill hardware, eliminating synthetic zero-padding.
+2. **Physical Robotic Arm Actuator Integration** — Hardware serial/CAN-bus/ROS2 bridge to physical prosthetic arm servos.
+3. **Embedded Edge Inference** — Deploy inference pipeline to standalone low-power hardware (Raspberry Pi 5 / Jetson Orin Nano).
+4. **Online Real-Time Domain Adaptation** — Real-time covariance matrix tracking on Riemannian manifolds for live session weight updating.
+5. **Biometric Multi-Modal Fusion (PalmPay)** — Integration with palm-vein biometrics for patient authentication and secure authorization (see `future_ideas.md`).
+6. **Clinical Partner Trials** — Validation protocols with rehabilitation centers and patients with spinal cord injury / motor neuron disease.
 
 ---
 
@@ -491,8 +515,8 @@ running `calibrate.py`, `predict_realtime.py`, or `predict_websocket.py`.
 **Web dashboard shows blank page / won't connect**
 1. Confirm `predict_websocket.py` is running and shows 
    "WebSocket server started" in the terminal
-2. Confirm you ran `npm install` inside `wheelchair-simulator/` 
-   at least once
+2. Confirm you ran `npm install` inside `prosthetic-arm-simulator/` 
+   or `wheelchair-simulator/` at least once
 3. Check the browser console for WebSocket connection errors
 
 **All predictions show IDLE**
@@ -538,4 +562,4 @@ Built upon the open-source BCI community: [PhysioNet](https://physionet.org) · 
 
 ---
 
-*ORBIT AI v3.0 · August 2026 · NAVEENKCG/Mind_Wave_AImodel*
+*ORBIT AI v3.1 · September 2026 · NAVEENKCG/Mind_Wave_AImodel*

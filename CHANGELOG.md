@@ -4,6 +4,17 @@ All notable changes to the ORBIT AI project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [v3.1] — 2026-09-12
+
+### Added
+- 4-class motor imagery decoding pipeline (`IDLE`, `LEFT`, `RIGHT`, `FORWARD`/`LIFT`) in `train_moabb.py`, `config.py`, `predict_realtime.py`, and `predict_websocket.py`
+- Dedicated Prosthetic Arm Simulator (`prosthetic-arm-simulator/`, port 3001) with articulated SVG robotic arm, spring physics, and live telemetry
+- Modular model storage directory structure (`models/model1/`, `models/model2/`, `models/prosthetic arm model/`)
+
+### Changed
+- Updated `README.md` to reflect the active 4-class motor imagery stage, dual-model architecture, and dual web simulators
+- Refined confidence thresholds and cooldown timings in `config.py` for multi-class classification
+
 ---
 
 ## [v3.0] — 2026-08-26
