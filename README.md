@@ -398,6 +398,7 @@ Mind_Wave_AImodel/
 ├── simulate_tgam.py                # EEG simulator (streams PhysioNet data over socket)
 │
 ├── # ── AI Engine (Active) ────────────────────────
+├── universal_model.py              # Universal BCI Model (Model 1) — loads, verifies & runs Universal Brain
 ├── train_moabb.py                  # Riemannian FBCSP+LDA trainer (primary pipeline)
 ├── calibrate.py                    # 95-second personal profiler
 │
@@ -412,8 +413,8 @@ Mind_Wave_AImodel/
 ├── quick_process.py                # Welch PSD feature extraction (inactive)
 │
 ├── # ── Runtime ───────────────────────────────────
-├── predict_realtime.py             # Live TUI dashboard (loads moabb_csp_lda.pkl)
-├── predict_websocket.py            # WebSocket server for web dashboard (loads moabb_csp_lda.pkl)
+├── predict_realtime.py             # Live TUI dashboard (uses universal_model.py)
+├── predict_websocket.py            # WebSocket server for web dashboard (uses universal_model.py)
 ├── demo_mode.py                    # One-command demo launcher
 │
 ├── # ── Diagnostics & Reporting ───────────────────
@@ -443,7 +444,7 @@ Mind_Wave_AImodel/
 │   ├── drift_profile.json          # 🧬 Adaptive Neural Drift Engine (Model 2) profile
 │   ├── personal_profile.json       # Personal calibration data (after running calibrate.py)
 │   ├── best_model.pth              # ❌ Legacy CNN-LSTM weights (not loaded at runtime)
-│   ├── model1/                     # Universal Brain base model storage
+│   ├── model1/                     # Universal Brain base model specifications & storage
 │   ├── model2/                     # Adaptive Neural Drift engine storage
 │   └── prosthetic arm model/       # Specialized prosthetic arm model artifacts
 ├── logs/                           # Session logs (CSV telemetry)
@@ -459,23 +460,23 @@ The system is operating at the **4-Class Motor Imagery & Dual-Model BCI System**
 
 - ✅ **4-Class Motor Imagery Decoding**: Upgraded core Riemannian FBCSP+LDA pipeline (`train_moabb.py`) from binary to 4-class classification (`IDLE`, `LEFT`, `RIGHT`, `FORWARD`/`LIFT`) using PhysioNet EEGMMIDB motor execution and imagery runs.
 - ✅ **Two-Model Architecture (Model 1 & Model 2)**:
-  - **Model 1 (Universal Brain)**: `models/moabb_csp_lda.pkl` — trained once on 10 PhysioNet clinical subjects across 21 motor-cortex channels; strictly read-only at runtime.
+  - **Model 1 (Universal Brain)**: `universal_model.py` + `models/moabb_csp_lda.pkl` — trained once on 10 PhysioNet clinical subjects across 21 motor-cortex channels; strictly read-only at runtime.
   - **Model 2 (Adaptive Neural Drift Engine)**: `adapt_drift.py` + `models/drift_profile.json` — performs longitudinal telemetry analysis (`logs/`), calculating EWMA confidence degradation and linear regression slopes to auto-calibrate threshold offsets without altering base model weights.
 - ✅ **Dedicated Prosthetic Arm Simulator**: Fully articulated robotic arm dashboard (`prosthetic-arm-simulator/`, port 3001) built with Next.js 15, Framer Motion spring physics, multi-joint SVG arm rendering, live brain power spectrum, and WebSocket telemetry (`ws://localhost:8765`).
 - ✅ **Dual-Simulator Ecosystem**: Complete support for both robotic prosthetic arm simulation (port 3001) and virtual wheelchair simulation (`wheelchair-simulator/`, port 3000).
-- ✅ **Modular Model Storage**: Structured directory layout with `models/model1/`, `models/model2/`, and `models/prosthetic arm model/`.
+- ✅ **Modular Model Storage**: Structured directory layout with `models/model1/` (with specifications), `models/model2/`, and `models/prosthetic arm model/`.
 - ✅ **5-Layer Medical Safety Pipeline**: Signal Quality RMS Check → 5s Warm-Up Stabilization → Drowsiness/Fatigue Ratio Monitoring → Fast-Path Jaw Clench EMG Emergency Stop (< 100ms) → Multi-Prediction Hysteresis Voting.
 - ✅ **95-Second Guided Personal Calibration**: Guided calibration session (`calibrate.py`) for personalizing alpha/beta baselines and fatigue thresholds.
-- ✅ **Unified Live Prediction Stack**: Real-time Rich TUI dashboard (`predict_realtime.py`) and WebSocket server (`predict_websocket.py`) supporting 4-class predictions.
+- ✅ **Unified Live Prediction Stack**: Real-time Rich TUI dashboard (`predict_realtime.py`) and WebSocket server (`predict_websocket.py`) using `universal_model.py`.
 
 ### 🧬 Adaptive Drift Engine (Model 2)
 
 ORBIT AI now has a **two-model architecture** to handle signal changes from aging, medication, or neurodegeneration:
 
-| Layer | File | What It Does | Modifies Original? |
-|-------|------|-------------|-------------------|
-| **Model 1** — Universal Brain | `moabb_csp_lda.pkl` | Core Riemannian classifier, trained once on PhysioNet | **NEVER modified** |
-| **Model 2** — Drift Engine | `drift_profile.json` | Adjusts thresholds based on session log analysis | Only writes to its own file |
+| Layer | File / Engine | What It Does | Modifies Original? |
+|-------|---------------|-------------|-------------------|
+| **Model 1** — Universal Brain | `universal_model.py` (`moabb_csp_lda.pkl`) | Core Riemannian classifier, trained once on PhysioNet | **NEVER modified** |
+| **Model 2** — Drift Engine | `adapt_drift.py` (`drift_profile.json`) | Adjusts thresholds based on session log analysis | Only writes to its own file |
 
 **How to use:**
 

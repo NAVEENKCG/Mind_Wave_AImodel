@@ -501,7 +501,7 @@ flowchart TD
     classDef output fill:#020617,stroke:#0ea5e9,stroke-width:2px,color:#fff
 
     subgraph MODEL1["Model 1 — Universal Brain (FROZEN)"]
-        M1["moabb_csp_lda.pkl<br/>Riemannian FBCSP+LDA<br/>Trained once on PhysioNet<br/>NEVER MODIFIED"]:::frozen
+        M1["universal_model.py<br/>moabb_csp_lda.pkl<br/>Riemannian FBCSP+LDA<br/>Trained once on PhysioNet<br/>NEVER MODIFIED"]:::frozen
     end
 
     subgraph MODEL2["Model 2 — Adaptive Drift Engine"]
@@ -552,9 +552,11 @@ flowchart TD
 
 | File | Role | Details |
 |------|------|---------|
-| `adapt_drift.py` | Drift Analysis Engine | Reads session CSVs, computes trends, writes `drift_profile.json`. **Never accesses Model 1 files.** |
+| `universal_model.py` | Universal Model Engine (Model 1) | Encapsulates Model 1 (Universal Brain). Loads, verifies, and runs inference for `moabb_csp_lda.pkl`. Strictly read-only. |
+| `models/model1/` | Model 1 Specifications | Storage and specifications (`README.md`, `model_spec.json`) for the Universal Brain architecture. |
+| `adapt_drift.py` | Drift Analysis Engine (Model 2) | Reads session CSVs, computes trends, writes `drift_profile.json`. **Never accesses Model 1 files.** |
 | `models/drift_profile.json` | Adaptation Profile | Threshold offsets with version tracking and safety bounds. Loaded by prediction scripts on startup. |
 
 ---
 
-*Updated: August 2026 | ORBIT AI v3.0 — Hybrid BCI-EMG System | NAVEENKCG/Mind_Wave_AImodel*
+*Updated: September 2026 | ORBIT AI v3.1 — Hybrid BCI-EMG System | NAVEENKCG/Mind_Wave_AImodel*

@@ -29,6 +29,7 @@ from config import *
 from config import C3_INDEX, C4_INDEX, N_MOTOR_CHANNELS
 from logger_orbit import logger as orbit_logger
 from adapt_drift import load_drift_profile, apply_drift_to_threshold, apply_drift_to_fatigue, get_warmup_extension
+from universal_model import get_universal_model, UniversalModel
 
 COMMANDS = {0: "IDLE", 1: "LEFT", 2: "RIGHT", 3: "FORWARD"}
 
@@ -99,24 +100,17 @@ class RealtimePredictor:
         self.total_idle   = 0
         self.engine_name  = "⚡ BioSensor"
 
-        # ── Load MOABB Model (if trained) ────────────────────────────
-        self.moabb_pipeline = None
-        self.moabb_stats    = None
+        # ── Load Universal Model (Model 1) ───────────────────────────
+        self.universal_model = get_universal_model()
+        self.moabb_pipeline = self.universal_model.pipeline
+        self.moabb_stats = self.universal_model.stats
 
-        if MOABB_MODEL_PATH.exists() and MOABB_STATS_PATH.exists():
-            try:
-                with open(MOABB_MODEL_PATH, 'rb') as f:
-                    self.moabb_pipeline = pickle.load(f)
-                with open(MOABB_STATS_PATH, 'rb') as f:
-                    self.moabb_stats = pickle.load(f)
-                acc = self.moabb_stats.get('cv_mean', 0) * 100
-                self.engine_name = f"🧠 CSP+LDA ({acc:.0f}%)"
-                self.console.print(f"[green]✅ MOABB model loaded — {acc:.1f}% CV accuracy[/green]")
-            except Exception as e:
-                self.console.print(f"[yellow]⚠ Could not load MOABB model: {e}[/yellow]")
-                self.console.print("[yellow]   Falling back to BioSensor engine.[/yellow]")
+        if self.universal_model.is_loaded:
+            acc = self.universal_model.cv_accuracy * 100
+            self.engine_name = f"🧠 CSP+LDA ({acc:.0f}%)"
+            self.console.print(f"[green]✅ Universal Model (Model 1) loaded — {acc:.1f}% CV accuracy[/green]")
         else:
-            self.console.print("[yellow]⚡ No MOABB model found. Using BioSensor engine.[/yellow]")
+            self.console.print("[yellow]⚡ No Universal Model found. Using BioSensor engine.[/yellow]")
             self.console.print("[yellow]   Run 'python train_moabb.py' to train.[/yellow]")
 
         # ── Load Personal Profile ────────────────────────────────────
@@ -259,64 +253,23 @@ class RealtimePredictor:
         3. NO z-score normalization (Riemannian models handle scaling internally).
         4. Use predict() → then derive probability for smoothing.
         """
-        raw_epoch  = raw_dict.get("_raw_epoch")
-        sfreq      = raw_dict.get("_sfreq", 160)
-        n_channels = raw_dict.get("_n_channels", 64)
-
-        if raw_epoch is None:
+    def classify_moabb(self, raw_dict):
+        """
+        Classifies current window using Model 1 (Universal Brain).
+        Delegates spatial covariance verification and Platt-calibrated inference
+        to `universal_model.UniversalModel`.
+        """
+        raw_epoch = raw_dict.get("_raw_epoch")
+        if raw_epoch is None or not self.universal_model.is_loaded:
             return self.classify_biosensor(raw_dict)
 
-        epoch = np.array(raw_epoch, dtype=np.float64)  # (n_ch, n_times)
-
-        # ── Channel alignment ────────────────────────────────────────
-        expected_ch = self.moabb_stats.get('n_channels', epoch.shape[0])
-        if epoch.shape[0] > expected_ch:
-            epoch = epoch[:expected_ch, :]
-        elif epoch.shape[0] < expected_ch:
-            # Cannot run Riemannian classifier on incomplete data (zero-padding
-            # creates degenerate covariance matrices) — fall back to biosensor
+        sfreq = raw_dict.get("_sfreq", 160)
+        proba = self.universal_model.predict_proba(np.array(raw_epoch), sfreq=sfreq)
+        if proba is None:
+            # Channel count mismatch (<21 channels) or artifact: safe fallback
             return self.classify_biosensor(raw_dict)
 
-        # ── Epoch length alignment ───────────────────────────────────
-        expected_times = self.moabb_stats.get('n_times', epoch.shape[1])
-        if epoch.shape[1] > expected_times:
-            epoch = epoch[:, :expected_times]
-        elif epoch.shape[1] < expected_times:
-            repeats = int(np.ceil(expected_times / epoch.shape[1]))
-            epoch = np.tile(epoch, (1, repeats))[:, :expected_times]
-
-        # ── Note: No Z-score normalization ───────────────────────────────
-        # Riemannian pipelines (Covariances → TS) operate directly on
-        # covariance matrices in Riemannian space; z-scoring would destroy
-        # the signal's spatial structure.
-
-        # Reshape to (1, n_ch, n_times)
-        X = epoch[np.newaxis, :, :]
-
-        # ── Inference: 4-class ────────────────────────────────────────
-        class_map = self.moabb_stats.get('classes', COMMANDS)
-        try:
-            if hasattr(self.moabb_pipeline, 'predict_proba'):
-                proba = self.moabb_pipeline.predict_proba(X)[0]
-                result = {}
-                for i, p in enumerate(proba):
-                    cmd_name = class_map.get(i, f"CLASS_{i}")
-                    result[cmd_name] = float(p)
-                for cmd in ["IDLE", "LEFT", "RIGHT", "FORWARD"]:
-                    if cmd not in result:
-                        result[cmd] = 0.0
-            else:
-                pred = int(self.moabb_pipeline.predict(X)[0])
-                pred_name = class_map.get(pred, "IDLE")
-                result = {"IDLE": 0.0, "LEFT": 0.0, "RIGHT": 0.0, "FORWARD": 0.0}
-                result[pred_name] = 0.85
-                remaining = 0.15 / max(1, len(result) - 1)
-                for k in result:
-                    if k != pred_name:
-                        result[k] = remaining
-            return result
-        except Exception:
-            return self.classify_biosensor(raw_dict)
+        return proba
 
     def classify_biosensor(self, raw_dict):
         """

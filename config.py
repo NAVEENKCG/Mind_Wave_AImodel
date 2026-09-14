@@ -91,6 +91,11 @@ N_MOTOR_CHANNELS = len(MOTOR_CHANNEL_NAMES)
 C3_INDEX = MOTOR_CHANNEL_NAMES.index('C3..')
 C4_INDEX = MOTOR_CHANNEL_NAMES.index('C4..')
 
+# ── Universal BCI Model (Model 1) ──────────────────────────────
+MODEL1_DIR = MODELS_DIR / "model1"
+UNIVERSAL_MODEL_PATH = MODELS_DIR / "moabb_csp_lda.pkl"
+UNIVERSAL_STATS_PATH = DATA_DIR / "moabb_stats.pkl"
+
 # ── Adaptive Drift Engine (Model 2) ─────────────────────────────
 # The drift engine NEVER modifies moabb_csp_lda.pkl (Model 1).
 # It only writes to drift_profile.json with threshold offsets.

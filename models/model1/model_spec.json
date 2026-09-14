@@ -1,0 +1,31 @@
+{
+  "model_name": "Model 1 — Universal Brain",
+  "version": "3.1",
+  "architecture": "Riemannian FBCSP + Tangent Space + Platt-LDA",
+  "pipeline_module": "universal_model.py",
+  "training_script": "train_moabb.py",
+  "status": "FROZEN_READ_ONLY",
+  "dataset": "PhysioNet EEGMMIDB (10 subjects, 21 motor channels)",
+  "cv_accuracy": 0.8371,
+  "sampling_rate_hz": 160.0,
+  "epoch_samples": 160,
+  "epoch_duration_sec": 1.0,
+  "n_channels": 21,
+  "motor_channels": [
+    "Fc5.", "Fc3.", "Fc1.", "Fcz.", "Fc2.", "Fc4.", "Fc6.",
+    "C5..", "C3..", "C1..", "Cz..", "C2..", "C4..", "C6..",
+    "Cp5.", "Cp3.", "Cp1.", "Cpz.", "Cp2.", "Cp4.", "Cp6."
+  ],
+  "classes": {
+    "0": "IDLE",
+    "1": "LEFT",
+    "2": "RIGHT",
+    "3": "FORWARD"
+  },
+  "safety_guarantees": [
+    "Strictly read-only at runtime",
+    "Spatial covariance check rejects <21 channel degenerate inputs",
+    "Platt-calibrated confidence probabilities",
+    "Model 2 Drift Engine adjusts thresholds without mutating Model 1 weights"
+  ]
+}

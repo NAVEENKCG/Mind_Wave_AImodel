@@ -38,6 +38,7 @@ from config import *
 from config import C3_INDEX, C4_INDEX, N_MOTOR_CHANNELS
 from logger_orbit import logger as orbit_logger
 from adapt_drift import load_drift_profile, apply_drift_to_threshold, apply_drift_to_fatigue, get_warmup_extension
+from universal_model import get_universal_model, UniversalModel
 
 COMMANDS = {0: "IDLE", 1: "LEFT", 2: "RIGHT", 3: "FORWARD"}
 # NOTE: Artifact threshold is in µV. Simulator data arrives in Volts (MNE convention),
@@ -72,25 +73,22 @@ class RealtimePredictor:
             "power": {"theta": 0.0, "alpha": 0.0, "beta": 0.0}
         }
 
-        # Load Models
-        self.moabb_pipeline = None
-        self.moabb_stats    = None
-        if MOABB_MODEL_PATH.exists() and MOABB_STATS_PATH.exists():
-            try:
-                with open(MOABB_MODEL_PATH, 'rb') as f: self.moabb_pipeline = pickle.load(f)
-                with open(MOABB_STATS_PATH, 'rb') as f: self.moabb_stats = pickle.load(f)
-                acc = self.moabb_stats.get('cv_mean', 0) * 100
-                pipe_name = self.moabb_stats.get('pipeline', 'CSP+LDA')
-                is_calibrated = self.moabb_stats.get('calibrated', False)
-                uses_fbcsp = self.moabb_stats.get('uses_fbcsp', False)
-                cal_tag = " [Platt-calibrated]" if is_calibrated else ""
-                fbcsp_tag = " [FBCSP]" if uses_fbcsp else ""
-                self.engine_name = f"{pipe_name}{cal_tag} ({acc:.0f}%)"
-                print(f"[MODEL] Loaded MOABB {pipe_name} pipeline{cal_tag}{fbcsp_tag} (CV accuracy: {acc:.1f}%)")
-                print(f"[MODEL] Expected input: {self.moabb_stats.get('n_channels')} channels x {self.moabb_stats.get('n_times')} samples")
-            except Exception as e:
-                print(f"[WARN] Failed to load MOABB model: {e}")
-                self.moabb_pipeline = None
+        # Load Model 1 (Universal Brain)
+        self.universal_model = get_universal_model()
+        self.moabb_pipeline = self.universal_model.pipeline
+        self.moabb_stats = self.universal_model.stats
+        if self.universal_model.is_loaded:
+            acc = self.universal_model.cv_accuracy * 100
+            pipe_name = self.universal_model.pipeline_name
+            is_calibrated = self.moabb_stats.get('calibrated', False)
+            uses_fbcsp = self.moabb_stats.get('uses_fbcsp', False)
+            cal_tag = " [Platt-calibrated]" if is_calibrated else ""
+            fbcsp_tag = " [FBCSP]" if uses_fbcsp else ""
+            self.engine_name = f"{pipe_name}{cal_tag} ({acc:.0f}%)"
+            print(f"[MODEL] Loaded Model 1 (Universal Brain) {pipe_name} pipeline{cal_tag}{fbcsp_tag} (CV accuracy: {acc:.1f}%)")
+            print(f"[MODEL] Expected input: {self.universal_model.expected_channels} channels x {self.universal_model.expected_times} samples")
+        else:
+            self.engine_name = "BioSensor"
 
         self.profile = None
         self.profile_path = MODELS_DIR / "personal_profile.json"
@@ -246,57 +244,15 @@ class RealtimePredictor:
     # ── Classification: MOABB Riemannian Pipeline (Primary) ──────────
     def classify_moabb(self, raw_dict):
         """
-        Use the trained MOABB Riemannian pipeline on raw multi-channel epoch data.
+        Use Model 1 (Universal Brain) Riemannian pipeline on raw multi-channel epoch data.
         Returns a dict {"IDLE": p, "LEFT": p, "RIGHT": p, "FORWARD": p} or None on failure.
         """
         raw_epoch = raw_dict.get("_raw_epoch")
-        if raw_epoch is None:
+        if raw_epoch is None or not self.universal_model.is_loaded:
             return None
 
-        X = np.array(raw_epoch)
-        expected_ch = self.moabb_stats.get('n_channels', 64)
-        expected_t  = self.moabb_stats.get('n_times', 160)
-
-        if X.shape[0] != expected_ch:
-            return None
-
-        if X.shape[1] != expected_t:
-            if X.shape[1] > expected_t:
-                X = X[:, :expected_t]
-            else:
-                return None
-
-        X = X[np.newaxis, :, :]
-
-        try:
-            n_classes = self.moabb_stats.get('n_classes', 2)
-            class_map = self.moabb_stats.get('classes', COMMANDS)
-
-            if hasattr(self.moabb_pipeline, 'predict_proba'):
-                proba = self.moabb_pipeline.predict_proba(X)[0]
-                result = {}
-                for i, p in enumerate(proba):
-                    cmd_name = class_map.get(i, f"CLASS_{i}")
-                    result[cmd_name] = float(p)
-                # Ensure all 4 classes are present
-                for cmd in ["IDLE", "LEFT", "RIGHT", "FORWARD"]:
-                    if cmd not in result:
-                        result[cmd] = 0.0
-            else:
-                pred = int(self.moabb_pipeline.predict(X)[0])
-                pred_name = class_map.get(pred, "IDLE")
-                result = {"IDLE": 0.0, "LEFT": 0.0, "RIGHT": 0.0, "FORWARD": 0.0}
-                result[pred_name] = 0.85
-                # Distribute remaining probability
-                remaining = 0.15 / max(1, len(result) - 1)
-                for k in result:
-                    if k != pred_name:
-                        result[k] = remaining
-
-            return result
-        except Exception as e:
-            print(f"[WARN] MOABB classification failed: {e}")
-            return None
+        sfreq = raw_dict.get("_sfreq", 160)
+        return self.universal_model.predict_proba(np.array(raw_epoch), sfreq=sfreq)
 
     # ── Classification: BioSensor Adaptive (Fallback) ────────────────
     def classify_biosensor(self, raw_dict):

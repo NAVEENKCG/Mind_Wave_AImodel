@@ -4,15 +4,18 @@ All notable changes to the ORBIT AI project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [v3.1] — 2026-09-12
+## [v3.1] — 2026-09-14
 
 ### Added
+- Dedicated Universal Model module (`universal_model.py`) encapsulating Model 1 (Universal Brain) with read-only guarantees, spatial covariance validation, and synthetic benchmark diagnostics
+- Model 1 specification files and documentation (`models/model1/README.md`, `models/model1/model_spec.json`)
 - 4-class motor imagery decoding pipeline (`IDLE`, `LEFT`, `RIGHT`, `FORWARD`/`LIFT`) in `train_moabb.py`, `config.py`, `predict_realtime.py`, and `predict_websocket.py`
 - Dedicated Prosthetic Arm Simulator (`prosthetic-arm-simulator/`, port 3001) with articulated SVG robotic arm, spring physics, and live telemetry
 - Modular model storage directory structure (`models/model1/`, `models/model2/`, `models/prosthetic arm model/`)
 
 ### Changed
-- Updated `README.md` to reflect the active 4-class motor imagery stage, dual-model architecture, and dual web simulators
+- Refactored `predict_realtime.py` and `predict_websocket.py` to delegate Model 1 loading and inference to `universal_model.py`
+- Updated `README.md` and `ARCHITECTURE.md` to reflect `universal_model.py` and Model 1 role
 - Refined confidence thresholds and cooldown timings in `config.py` for multi-class classification
 
 ---
