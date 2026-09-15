@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Refactored `predict_realtime.py` and `predict_websocket.py` to delegate Model 1 loading and inference to `universal_model.py`
 - Updated `README.md` and `ARCHITECTURE.md` to reflect `universal_model.py` and Model 1 role
 - Refined confidence thresholds and cooldown timings in `config.py` for multi-class classification
+- Overhauled and expanded Innovation Roadmap and Future Ideas across all README files (`README.md`, `future_ideas.md`, `prosthetic-arm-simulator/README.md`, `wheelchair-simulator/README.md`, `models/model1/README.md`) covering PalmPay biometric security, physical actuator bridge (ORBIT-Actuate), shared autonomy wheelchair mobility, EEGNet-EXG, and sensory haptics
 
 ---
 

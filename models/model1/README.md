@@ -36,3 +36,20 @@ python universal_model.py --test
 # Verify immutability & file integrity
 python universal_model.py --verify
 ```
+
+## 💡 Future Ideas & Model Evolution
+
+The future evolution of Model 1 focuses on eliminating electrode density constraints and enabling edge deployment:
+
+1. **Channel-Agnostic Deep Architecture (`EEGNet-EXG`)**:
+   - Transition from 21-channel clinical caps to 1–2 channel bio-potential sensors (e.g. BioAmp EXG Pill) via spatial attention maps, removing the requirement for synthetic zero-padding.
+2. **Riemannian Procrustes Analysis (RPA)**:
+   - Implement geometric manifold alignment to mathematically align new subject covariance matrices onto the canonical Model 1 Riemannian tangent space without retraining.
+3. **Edge Quantization (INT8 & Microcontrollers)**:
+   - Export Model 1 weights to ONNX Runtime and TensorFlow Lite Micro with INT8 quantization, lowering memory footprint below 250 KB for direct execution on Raspberry Pi 5 or ESP32-S3.
+4. **Biometric Profile Binding with PalmPay**:
+   - Automatically associate Model 1 Platt probability calibration baselines with the patient's verified palm-vein identity (see [`future_ideas.md`](../../future_ideas.md)).
+
+---
+*Reference: [Main Innovation Roadmap](../../README.md#💡-innovation-roadmap--future-ideas) · [System Architecture](../../ARCHITECTURE.md)*
+
