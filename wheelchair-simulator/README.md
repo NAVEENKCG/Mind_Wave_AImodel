@@ -89,11 +89,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - Migrate the 2D grid into an immersive Three.js 3D hospital room and outdoor sidewalk simulation.
 - Include wheelchair physics (mass, inertia, rolling friction, slope climbing).
 
-### 4. 🔐 PalmPay Biometric Ignition & Security Lock
-- Integrate with [**PalmPay**](../future_ideas.md#1-palmpay--ai-based-palm-vein-biometric-authentication--medical-device-gateway) via Near-Infrared palm-vein scanning.
-- Prevent unauthorized movement by requiring the patient’s unique vascular pattern to unlock the wheelchair controller.
-
-### 5. 🔌 Physical Wheelchair Motor Controller Bridge
+### 4. 🔌 Physical Wheelchair Motor Controller Bridge
 - Direct serial / CAN-bus hardware interface connecting Next.js / Python outputs to Curtis or Roboteq electric wheelchair motor drivers.
 
 ---

@@ -4,6 +4,13 @@ All notable changes to the ORBIT AI project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [v3.1.1] — 2026-09-16
+
+### Removed
+- Removed PalmPay biometric palm-vein scanning specifications and references from the innovation roadmap, system documentation, and simulation companions (`future_ideas.md`, `README.md`, `wheelchair-simulator/README.md`, `prosthetic-arm-simulator/README.md`, `models/model1/README.md`)
+
+---
+
 ## [v3.1] — 2026-09-14
 
 ### Added

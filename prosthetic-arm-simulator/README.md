@@ -92,10 +92,6 @@ Open [http://localhost:3001](http://localhost:3001) in your browser.
 - Integrate thin-film pressure sensors at the virtual and physical fingertips.
 - Render dynamic tactile pressure heatmaps in `ArmArena` while triggering wireless vibrotactile feedback bands worn by the amputee.
 
-### 5. 🔐 PalmPay Biometric Grip & Device Authorization
-- Cross-integrate with [**PalmPay**](../future_ideas.md#1-palmpay--ai-based-palm-vein-biometric-authentication--medical-device-gateway).
-- Patient must present their palm to unlock bionic arm movement, protecting against accidental activation or tampering when the prosthesis is detached.
-
 ---
 
 ## 🔗 Related Documentation

@@ -495,18 +495,18 @@ The drift engine reads your accumulated session logs from `logs/`, detects trend
 
 ### 💡 Innovation Roadmap & Future Ideas
 
-The ORBIT AI ecosystem is actively expanding across medical robotics, assistive mobility, neural decoding, and biometric security. For comprehensive technical specifications, refer to [**`future_ideas.md`**](./future_ideas.md).
+The ORBIT AI ecosystem is actively expanding across medical robotics, assistive mobility, neural decoding, and tele-rehabilitation. For comprehensive technical specifications, refer to [**`future_ideas.md`**](./future_ideas.md).
 
 ```
                               ┌───────────────────────────────────┐
                               │      ORBIT AI CORE ECOSYSTEM      │
                               └─────────────────┬─────────────────┘
                                                 │
-         ┌──────────────────────┬───────────────┴───────────────┬──────────────────────┐
-         ▼                      ▼                               ▼                      ▼
-  🦾 ORBIT-Actuate       🦽 Smart Wheelchair             🧠 EEGNet-EXG          🔐 PalmPay Gateway
-  Physical Bionic Arm    Shared Autonomy Mobility        Channel-Agnostic       Contactless Palm-Vein
-  Embedded Micro-ROS     LiDAR Obstacle Avoidance        Compact Neural Net     Biometric Security & Auth
+         ┌──────────────────────────────────────┼──────────────────────────────────────┐
+         ▼                                      ▼                                      ▼
+  🦾 ORBIT-Actuate                       🦽 Smart Wheelchair                    🧠 EEGNet-EXG
+  Physical Bionic Arm                    Shared Autonomy Mobility               Channel-Agnostic
+  Embedded Micro-ROS                     LiDAR Obstacle Avoidance               Compact Neural Net
 ```
 
 #### 1. 🦾 Physical Bionic Arm Actuator Bridge (ORBIT-Actuate)
@@ -526,27 +526,18 @@ The ORBIT AI ecosystem is actively expanding across medical robotics, assistive 
 - **Ultra-Low Latency Edge Inference**: Sub-3,000 parameter architecture optimized for ONNX Runtime and TensorFlow Lite Micro, achieving < 5ms inference latency on Raspberry Pi 5 or STM32 microcontrollers.
 - **Online Riemannian Manifold Tracking**: Real-time geometric covariance recentering on Riemannian manifolds to adapt to electrode impedance drift during live sessions.
 
-#### 4. 🔐 PalmPay — Contactless Palm-Vein Biometric Security Gateway
-- **Subsurface Vascular Verification**: Utilizing 850nm Near-Infrared (NIR) imaging to map deoxygenated hemoglobin vein patterns—immune to surface damage, latent prints, or spoofing.
-- **Dual-Domain Ecosystem Synergy**:
-  - **Assistive Device Lock/Unlock**: Ensures bionic limbs and motorized wheelchairs cannot be operated by unauthorized individuals.
-  - **Automated Patient Profile Loading**: Instantly loads the verified patient's personalized Model 1 thresholds and Model 2 drift profiles (`models/personal_profile.json`).
-  - **Standalone Cashless Wallet**: Demo contactless digital wallet with simulated payments and transaction auditing.
-- *Detailed Architecture*: [Read the full PalmPay specification in `future_ideas.md`](./future_ideas.md).
-
-#### 5. ⚡ Neuro-Haptic Closed-Loop Sensory Substitution
+#### 4. ⚡ Neuro-Haptic Closed-Loop Sensory Substitution
 - **Fingertip Tactile Transduction**: Thin-film piezoresistive pressure sensors mounted on bionic fingertips.
 - **Vibrotactile Feedback Matrix**: Linear Resonant Actuator (LRA) collar transmitting grip strength and surface contact to the patient's residual limb via frequency modulation (50–250 Hz).
 
-#### 6. 🏥 Tele-BCI & Longitudinal Clinical Rehabilitation
+#### 5. 🏥 Tele-BCI & Longitudinal Clinical Rehabilitation
 - **Clinician Dashboard**: Cloud-synced telemetry analyzing daily session logs (`logger_orbit.py`) and automated PDF summaries (`auto_report.py`) to track neuroplastic motor recovery in stroke/ALS rehabilitation.
 
 | Milestone | Target Horizon | Core Deliverables |
 | :--- | :---: | :--- |
 | **Phase 1: BCI Core & Simulation** | **Current (v3.1)** | 4-Class Riemannian decoding, Dual-Model architecture, Prosthetic & Wheelchair simulators |
-| **Phase 2: PalmPay & Biometric Security** | **Q4 2026** | NIR palm capture pipeline, Siamese deep embeddings, device lock/unlock API |
-| **Phase 3: Embedded Edge & Actuation** | **Q1 2027** | Micro-ROS ESP32 bridge, 3D printed bionic hand actuation, EEGNet-EXG edge export |
-| **Phase 4: Shared Autonomy & Haptics** | **Q2 2027** | LiDAR obstacle fusion, vibrotactile sensory wristband, 3D WebGL digital twin |
+| **Phase 2: Embedded Edge & Actuation** | **Q1 2027** | Micro-ROS ESP32 bridge, 3D printed bionic hand actuation, EEGNet-EXG edge export |
+| **Phase 3: Shared Autonomy & Haptics** | **Q2 2027** | LiDAR obstacle fusion, vibrotactile sensory wristband, 3D WebGL digital twin |
 
 
 ---
@@ -594,7 +585,7 @@ These are required by `train_moabb.py`. Run:
 |----------|-------------|
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Full system architecture and visual workflows |
 | [RND_PAPER.md](./RND_PAPER.md) | Research paper with datasets, algorithms, and 23 academic references |
-| [future_ideas.md](./future_ideas.md) | Comprehensive innovation roadmap, PalmPay biometric specs & hardware plans |
+| [future_ideas.md](./future_ideas.md) | Comprehensive innovation roadmap, robotic actuation & hardware plans |
 | [LEGACY.md](./LEGACY.md) | Legacy file reference — which files are inactive and why |
 | [CHANGELOG.md](./CHANGELOG.md) | Version history and changes |
 
