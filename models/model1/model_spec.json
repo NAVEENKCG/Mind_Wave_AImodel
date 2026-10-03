@@ -7,8 +7,8 @@
   "status": "FROZEN_READ_ONLY",
   "dataset": "PhysioNet EEGMMIDB (10 subjects, 21 motor channels)",
   "cv_accuracy": 0.8371,
-  "sampling_rate_hz": 160.0,
-  "epoch_samples": 160,
+  "sampling_rate_hz": 250.0,
+  "epoch_samples": 250,
   "epoch_duration_sec": 1.0,
   "n_channels": 21,
   "motor_channels": [

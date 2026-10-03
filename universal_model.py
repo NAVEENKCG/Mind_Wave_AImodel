@@ -165,8 +165,8 @@ class UniversalModel:
                 self.stats = {
                     "pipeline": "Riemannian_FBCSP_LDA",
                     "n_channels": N_MOTOR_CHANNELS,
-                    "n_times": 160,
-                    "sfreq": 160.0,
+                    "n_times": 250,
+                    "sfreq": 250.0,
                     "classes": DEFAULT_CLASSES,
                     "motor_channels": MOTOR_CHANNEL_NAMES,
                     "cv_mean": 0.8371,

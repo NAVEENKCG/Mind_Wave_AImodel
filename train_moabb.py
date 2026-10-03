@@ -60,8 +60,8 @@ MODEL_OUT = MODELS_DIR / "moabb_csp_lda.pkl"
 STATS_OUT = DATA_DIR   / "moabb_stats.pkl"
 
 # ── Constants ────────────────────────────────────────────────────
-SFREQ = 160           # PhysioNet sample rate
-EPOCH_SAMPLES = 160   # 1 second at 160Hz (matches simulator chunk_size)
+SFREQ = 250           # ADS1299 hardware sample rate (PhysioNet 160Hz resampled up)
+EPOCH_SAMPLES = 250   # 1 second at 250Hz (matches ADS1299 output)
 N_SUBJECTS = 10       # 10 subjects for robust covariance estimates
 ARTIFACT_THRESHOLD = 100e-6  # ±100uV peak-to-peak artifact rejection
 
@@ -188,6 +188,9 @@ def extract_epochs_from_edf(edf_path, epoch_samples, event_aligned=False,
             raw.pick_channels(available)
     
     raw.filter(0.5, 50, verbose=False)  # Wider bandpass: preserves delta floor + gamma ceiling
+    # Resample to match ADS1299 hardware rate (PhysioNet 160Hz → 250Hz)
+    if abs(raw.info['sfreq'] - SFREQ) > 1.0:
+        raw.resample(SFREQ, verbose=False)
     data = raw.get_data()  # (n_channels, n_samples)
     n_channels = data.shape[0]
     
@@ -300,7 +303,7 @@ def main():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     
-    cache_epochs_path = DATA_DIR / "moabb_epochs_v8_4class.pkl"
+    cache_epochs_path = DATA_DIR / "moabb_epochs_v9_4class_250hz.pkl"
     
     if cache_epochs_path.exists():
         print("\n[1-3/6] Loading pre-extracted & balanced 4-class epochs from local cache...", flush=True)
@@ -552,22 +555,14 @@ def main():
     # ── 6. Train final model on ALL data (with augmentation) + Platt ─
     print("\n[6/6] Fitting final model on full dataset with Platt calibration...", flush=True)
     
-    # Split out 15% calibration set to prevent Platt scaling data leakage
-    from sklearn.model_selection import train_test_split
-    X_train_final, X_cal, y_train_final, y_cal = train_test_split(
-        X, y, test_size=0.15, stratify=y, random_state=42
-    )
-    
-    # Augment full training set for final base model
-    X_aug_list, y_aug = augment_epochs(list(X_train_final), labels=y_train_final, max_jitter=25, rng=np.random.RandomState(42))
+    # Augment full dataset for final base model
+    X_aug_list, y_aug = augment_epochs(list(X), labels=y, max_jitter=25, rng=np.random.RandomState(42))
     X_aug = np.array(X_aug_list)
     
-    # Fit base pipeline on augmented data
-    pipeline.fit(X_aug, y_aug)
-    
-    # Wrap with Platt scaling using prefit and calibration set
-    calibrated = CalibratedClassifierCV(pipeline, method='sigmoid', cv='prefit')
-    calibrated.fit(X_cal, y_cal)
+    # Wrap with Platt scaling — sklearn handles calibration split internally via CV
+    # (cv='prefit' removed in newer sklearn; cv=3 achieves the same with less leakage risk)
+    calibrated = CalibratedClassifierCV(pipeline, method='sigmoid', cv=3)
+    calibrated.fit(X_aug, y_aug)
 
     # ── 7. Save ──────────────────────────────────────────────────────
     ch_mean = np.mean(X, axis=(0, 2))

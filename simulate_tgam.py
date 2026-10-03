@@ -155,6 +155,9 @@ class EEGStreamSimulator:
                 print(f"[SIM] Selected {len(available)} motor-cortex channels (of {64} total)")
             
             raw.filter(0.5, 50, verbose=False)
+            # Resample to match ADS1299 hardware rate (PhysioNet 160Hz → 250Hz)
+            if abs(raw.info['sfreq'] - 250.0) > 1.0:
+                raw.resample(250.0, verbose=False)
 
             data = raw.get_data()
             self.sfreq = raw.info['sfreq']
