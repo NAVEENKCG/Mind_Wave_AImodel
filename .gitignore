@@ -39,3 +39,8 @@ prosthetic-arm-simulator/out/
 prosthetic-arm-simulator/.turbo/
 prosthetic-arm-simulator/dist/
 prosthetic-arm-simulator/.env*.local
+
+# NinaPro DB6 experiment data (large .mat / .zip files)
+experiments/db6/data/
+experiments/db6/.venv/
+experiments/db6/*.zip
