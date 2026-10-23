@@ -1,0 +1,726 @@
+{
+  "frameworks": [
+    "MOABB",
+    "Next.js",
+    "PyRiemann",
+    "React",
+    "Tailwind CSS"
+  ],
+  "description": "ORBIT AI is an open-source hybrid EEG/EMG brain-computer interface for prosthetic arm control, combining motor-imagery classification with an EMG jaw-clench emergency stop and adaptive drift handling.",
+  "name": "ORBIT AI",
+  "gitCommitHash": "58c33855aab761a6d8fceb87ce4dcb025b1a5e40",
+  "languages": [
+    "css",
+    "csv",
+    "ds_store",
+    "ipynb",
+    "javascript",
+    "json",
+    "markdown",
+    "mat",
+    "pkl",
+    "python",
+    "txt",
+    "typescript",
+    "unknown"
+  ],
+  "files": [
+    {
+      "path": ".github/ISSUE_TEMPLATE/bug_report.md",
+      "language": "markdown",
+      "sizeLines": 32,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "language": "markdown",
+      "sizeLines": 562,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "language": "markdown",
+      "sizeLines": 77,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "LEGACY.md",
+      "language": "markdown",
+      "sizeLines": 23,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 606,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "RND_PAPER.md",
+      "language": "markdown",
+      "sizeLines": 739,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "adapt_drift.py",
+      "language": "python",
+      "sizeLines": 701,
+      "fileCategory": "code"
+    },
+    {
+      "path": "auto_report.py",
+      "language": "python",
+      "sizeLines": 167,
+      "fileCategory": "code"
+    },
+    {
+      "path": "bridge_bioamp.py",
+      "language": "python",
+      "sizeLines": 279,
+      "fileCategory": "code"
+    },
+    {
+      "path": "calibrate.py",
+      "language": "python",
+      "sizeLines": 362,
+      "fileCategory": "code"
+    },
+    {
+      "path": "collect_data.py",
+      "language": "python",
+      "sizeLines": 118,
+      "fileCategory": "code"
+    },
+    {
+      "path": "config.py",
+      "language": "python",
+      "sizeLines": 106,
+      "fileCategory": "code"
+    },
+    {
+      "path": "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D1_T1.mat",
+      "language": "mat",
+      "sizeLines": 771364,
+      "fileCategory": "code"
+    },
+    {
+      "path": "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D1_T2.mat",
+      "language": "mat",
+      "sizeLines": 811394,
+      "fileCategory": "code"
+    },
+    {
+      "path": "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D2_T1.mat",
+      "language": "mat",
+      "sizeLines": 808963,
+      "fileCategory": "code"
+    },
+    {
+      "path": "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D2_T2.mat",
+      "language": "mat",
+      "sizeLines": 791311,
+      "fileCategory": "code"
+    },
+    {
+      "path": "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D3_T1.mat",
+      "language": "mat",
+      "sizeLines": 819344,
+      "fileCategory": "code"
+    },
+    {
+      "path": "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D3_T2.mat",
+      "language": "mat",
+      "sizeLines": 800723,
+      "fileCategory": "code"
+    },
+    {
+      "path": "data/db6_subject/DB6_s1_a/__MACOSX/DB6_s1_a/._.DS_Store",
+      "language": "ds_store",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D4_T1.mat",
+      "language": "mat",
+      "sizeLines": 829405,
+      "fileCategory": "code"
+    },
+    {
+      "path": "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D4_T2.mat",
+      "language": "mat",
+      "sizeLines": 742128,
+      "fileCategory": "code"
+    },
+    {
+      "path": "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D5_T1.mat",
+      "language": "mat",
+      "sizeLines": 764494,
+      "fileCategory": "code"
+    },
+    {
+      "path": "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D5_T2.mat",
+      "language": "mat",
+      "sizeLines": 820549,
+      "fileCategory": "code"
+    },
+    {
+      "path": "data/db6_subject/baseline/results_baseline.csv",
+      "language": "csv",
+      "sizeLines": 11,
+      "fileCategory": "data"
+    },
+    {
+      "path": "data/db6_subject/step3/summary.csv",
+      "language": "csv",
+      "sizeLines": 61,
+      "fileCategory": "data"
+    },
+    {
+      "path": "data/db6_subject/step3b/step3b_summary.csv",
+      "language": "csv",
+      "sizeLines": 61,
+      "fileCategory": "data"
+    },
+    {
+      "path": "data/moabb_stats.pkl",
+      "language": "pkl",
+      "sizeLines": 4,
+      "fileCategory": "code"
+    },
+    {
+      "path": "demo_mode.py",
+      "language": "python",
+      "sizeLines": 270,
+      "fileCategory": "code"
+    },
+    {
+      "path": "diagnose.py",
+      "language": "python",
+      "sizeLines": 229,
+      "fileCategory": "code"
+    },
+    {
+      "path": "evaluate.py",
+      "language": "python",
+      "sizeLines": 105,
+      "fileCategory": "code"
+    },
+    {
+      "path": "experiments/db6/db6_baseline.py",
+      "language": "python",
+      "sizeLines": 377,
+      "fileCategory": "code"
+    },
+    {
+      "path": "experiments/db6/db6_drift_step3.py",
+      "language": "python",
+      "sizeLines": 393,
+      "fileCategory": "code"
+    },
+    {
+      "path": "experiments/db6/db6_explore.py",
+      "language": "python",
+      "sizeLines": 316,
+      "fileCategory": "code"
+    },
+    {
+      "path": "experiments/db6/db6_step3c.py",
+      "language": "python",
+      "sizeLines": 550,
+      "fileCategory": "code"
+    },
+    {
+      "path": "fetch_and_process_openneuro.py",
+      "language": "python",
+      "sizeLines": 187,
+      "fileCategory": "code"
+    },
+    {
+      "path": "fine_tune.py",
+      "language": "python",
+      "sizeLines": 105,
+      "fileCategory": "code"
+    },
+    {
+      "path": "future_ideas.md",
+      "language": "markdown",
+      "sizeLines": 105,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "logger_orbit.py",
+      "language": "python",
+      "sizeLines": 249,
+      "fileCategory": "code"
+    },
+    {
+      "path": "logs/session_20260715_221647_summary.json",
+      "language": "json",
+      "sizeLines": 13,
+      "fileCategory": "config"
+    },
+    {
+      "path": "logs/session_20260715_225134_summary.json",
+      "language": "json",
+      "sizeLines": 13,
+      "fileCategory": "config"
+    },
+    {
+      "path": "logs/session_20260715_230508_summary.json",
+      "language": "json",
+      "sizeLines": 13,
+      "fileCategory": "config"
+    },
+    {
+      "path": "model.py",
+      "language": "python",
+      "sizeLines": 154,
+      "fileCategory": "code"
+    },
+    {
+      "path": "models/drift_profile.json",
+      "language": "json",
+      "sizeLines": 49,
+      "fileCategory": "config"
+    },
+    {
+      "path": "models/model1/.gitkeep",
+      "language": "unknown",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "models/model1/README.md",
+      "language": "markdown",
+      "sizeLines": 53,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "models/model1/model_spec.json",
+      "language": "json",
+      "sizeLines": 31,
+      "fileCategory": "config"
+    },
+    {
+      "path": "models/model2/.gitkeep",
+      "language": "unknown",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "models/prosthetic arm model/.gitkeep",
+      "language": "unknown",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "notebooks/01_data_exploration.ipynb",
+      "language": "ipynb",
+      "sizeLines": 192,
+      "fileCategory": "code"
+    },
+    {
+      "path": "notebooks/02_model_experiments.ipynb",
+      "language": "ipynb",
+      "sizeLines": 228,
+      "fileCategory": "code"
+    },
+    {
+      "path": "notebooks/03_results_analysis.ipynb",
+      "language": "ipynb",
+      "sizeLines": 153,
+      "fileCategory": "code"
+    },
+    {
+      "path": "notebooks/Architecture_Workflow.ipynb",
+      "language": "ipynb",
+      "sizeLines": 125,
+      "fileCategory": "code"
+    },
+    {
+      "path": "predict_realtime.py",
+      "language": "python",
+      "sizeLines": 579,
+      "fileCategory": "code"
+    },
+    {
+      "path": "predict_websocket.py",
+      "language": "python",
+      "sizeLines": 530,
+      "fileCategory": "code"
+    },
+    {
+      "path": "preprocess.py",
+      "language": "python",
+      "sizeLines": 181,
+      "fileCategory": "code"
+    },
+    {
+      "path": "prosthetic-arm-simulator/README.md",
+      "language": "markdown",
+      "sizeLines": 101,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "prosthetic-arm-simulator/eslint.config.mjs",
+      "language": "javascript",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "prosthetic-arm-simulator/next-env.d.ts",
+      "language": "typescript",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "prosthetic-arm-simulator/next.config.ts",
+      "language": "typescript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "prosthetic-arm-simulator/package.json",
+      "language": "json",
+      "sizeLines": 32,
+      "fileCategory": "config"
+    },
+    {
+      "path": "prosthetic-arm-simulator/postcss.config.mjs",
+      "language": "javascript",
+      "sizeLines": 5,
+      "fileCategory": "code"
+    },
+    {
+      "path": "prosthetic-arm-simulator/src/app/globals.css",
+      "language": "css",
+      "sizeLines": 62,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "prosthetic-arm-simulator/src/app/layout.tsx",
+      "language": "typescript",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "prosthetic-arm-simulator/src/app/page.tsx",
+      "language": "typescript",
+      "sizeLines": 331,
+      "fileCategory": "code"
+    },
+    {
+      "path": "prosthetic-arm-simulator/src/components/ArmArena.tsx",
+      "language": "typescript",
+      "sizeLines": 347,
+      "fileCategory": "code"
+    },
+    {
+      "path": "prosthetic-arm-simulator/src/components/BrainPowerPanel.tsx",
+      "language": "typescript",
+      "sizeLines": 84,
+      "fileCategory": "code"
+    },
+    {
+      "path": "prosthetic-arm-simulator/src/components/StatusPanel.tsx",
+      "language": "typescript",
+      "sizeLines": 179,
+      "fileCategory": "code"
+    },
+    {
+      "path": "prosthetic-arm-simulator/src/lib/animations.ts",
+      "language": "typescript",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "prosthetic-arm-simulator/src/lib/utils.ts",
+      "language": "typescript",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "prosthetic-arm-simulator/tsconfig.json",
+      "language": "json",
+      "sizeLines": 27,
+      "fileCategory": "config"
+    },
+    {
+      "path": "quick_process.py",
+      "language": "python",
+      "sizeLines": 97,
+      "fileCategory": "code"
+    },
+    {
+      "path": "requirements.txt",
+      "language": "txt",
+      "sizeLines": 15,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "simulate_tgam.py",
+      "language": "python",
+      "sizeLines": 274,
+      "fileCategory": "code"
+    },
+    {
+      "path": "train.py",
+      "language": "python",
+      "sizeLines": 128,
+      "fileCategory": "code"
+    },
+    {
+      "path": "train_moabb.py",
+      "language": "python",
+      "sizeLines": 619,
+      "fileCategory": "code"
+    },
+    {
+      "path": "universal_model.py",
+      "language": "python",
+      "sizeLines": 466,
+      "fileCategory": "code"
+    },
+    {
+      "path": "wheelchair-simulator/README.md",
+      "language": "markdown",
+      "sizeLines": 101,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "wheelchair-simulator/eslint.config.mjs",
+      "language": "javascript",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "wheelchair-simulator/next.config.ts",
+      "language": "typescript",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "wheelchair-simulator/npm",
+      "language": "unknown",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "wheelchair-simulator/package.json",
+      "language": "json",
+      "sizeLines": 32,
+      "fileCategory": "config"
+    },
+    {
+      "path": "wheelchair-simulator/postcss.config.mjs",
+      "language": "javascript",
+      "sizeLines": 5,
+      "fileCategory": "code"
+    },
+    {
+      "path": "wheelchair-simulator/src/app/globals.css",
+      "language": "css",
+      "sizeLines": 61,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "wheelchair-simulator/src/app/layout.tsx",
+      "language": "typescript",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "wheelchair-simulator/src/app/page.tsx",
+      "language": "typescript",
+      "sizeLines": 314,
+      "fileCategory": "code"
+    },
+    {
+      "path": "wheelchair-simulator/src/components/Arena.tsx",
+      "language": "typescript",
+      "sizeLines": 170,
+      "fileCategory": "code"
+    },
+    {
+      "path": "wheelchair-simulator/src/components/BrainPowerPanel.tsx",
+      "language": "typescript",
+      "sizeLines": 82,
+      "fileCategory": "code"
+    },
+    {
+      "path": "wheelchair-simulator/src/components/StatusPanel.tsx",
+      "language": "typescript",
+      "sizeLines": 177,
+      "fileCategory": "code"
+    },
+    {
+      "path": "wheelchair-simulator/src/lib/animations.ts",
+      "language": "typescript",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "wheelchair-simulator/src/lib/utils.ts",
+      "language": "typescript",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "wheelchair-simulator/tsconfig.json",
+      "language": "json",
+      "sizeLines": 27,
+      "fileCategory": "config"
+    }
+  ],
+  "totalFiles": 91,
+  "filteredByIgnore": 0,
+  "estimatedComplexity": "moderate",
+  "importMap": {
+    ".github/ISSUE_TEMPLATE/bug_report.md": [],
+    "ARCHITECTURE.md": [],
+    "CHANGELOG.md": [],
+    "LEGACY.md": [],
+    "README.md": [],
+    "RND_PAPER.md": [],
+    "adapt_drift.py": [
+      "config.py"
+    ],
+    "auto_report.py": [],
+    "bridge_bioamp.py": [
+      "config.py",
+      "logger_orbit.py"
+    ],
+    "calibrate.py": [
+      "config.py"
+    ],
+    "collect_data.py": [
+      "config.py"
+    ],
+    "config.py": [],
+    "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D1_T1.mat": [],
+    "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D1_T2.mat": [],
+    "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D2_T1.mat": [],
+    "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D2_T2.mat": [],
+    "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D3_T1.mat": [],
+    "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D3_T2.mat": [],
+    "data/db6_subject/DB6_s1_a/__MACOSX/DB6_s1_a/._.DS_Store": [],
+    "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D4_T1.mat": [],
+    "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D4_T2.mat": [],
+    "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D5_T1.mat": [],
+    "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D5_T2.mat": [],
+    "data/db6_subject/baseline/results_baseline.csv": [],
+    "data/db6_subject/step3/summary.csv": [],
+    "data/db6_subject/step3b/step3b_summary.csv": [],
+    "data/moabb_stats.pkl": [],
+    "demo_mode.py": [],
+    "diagnose.py": [],
+    "evaluate.py": [
+      "config.py"
+    ],
+    "experiments/db6/db6_baseline.py": [],
+    "experiments/db6/db6_drift_step3.py": [],
+    "experiments/db6/db6_explore.py": [],
+    "experiments/db6/db6_step3c.py": [],
+    "fetch_and_process_openneuro.py": [
+      "config.py"
+    ],
+    "fine_tune.py": [
+      "config.py",
+      "model.py"
+    ],
+    "future_ideas.md": [],
+    "logger_orbit.py": [
+      "config.py"
+    ],
+    "logs/session_20260715_221647_summary.json": [],
+    "logs/session_20260715_225134_summary.json": [],
+    "logs/session_20260715_230508_summary.json": [],
+    "model.py": [],
+    "models/drift_profile.json": [],
+    "models/model1/.gitkeep": [],
+    "models/model1/README.md": [],
+    "models/model1/model_spec.json": [],
+    "models/model2/.gitkeep": [],
+    "models/prosthetic arm model/.gitkeep": [],
+    "notebooks/01_data_exploration.ipynb": [],
+    "notebooks/02_model_experiments.ipynb": [],
+    "notebooks/03_results_analysis.ipynb": [],
+    "notebooks/Architecture_Workflow.ipynb": [],
+    "predict_realtime.py": [
+      "adapt_drift.py",
+      "config.py",
+      "logger_orbit.py",
+      "universal_model.py"
+    ],
+    "predict_websocket.py": [
+      "adapt_drift.py",
+      "config.py",
+      "logger_orbit.py",
+      "universal_model.py"
+    ],
+    "preprocess.py": [
+      "config.py"
+    ],
+    "prosthetic-arm-simulator/README.md": [],
+    "prosthetic-arm-simulator/eslint.config.mjs": [],
+    "prosthetic-arm-simulator/next-env.d.ts": [],
+    "prosthetic-arm-simulator/next.config.ts": [],
+    "prosthetic-arm-simulator/package.json": [],
+    "prosthetic-arm-simulator/postcss.config.mjs": [],
+    "prosthetic-arm-simulator/src/app/globals.css": [],
+    "prosthetic-arm-simulator/src/app/layout.tsx": [
+      "prosthetic-arm-simulator/src/app/globals.css"
+    ],
+    "prosthetic-arm-simulator/src/app/page.tsx": [
+      "prosthetic-arm-simulator/src/components/ArmArena.tsx",
+      "prosthetic-arm-simulator/src/components/BrainPowerPanel.tsx",
+      "prosthetic-arm-simulator/src/components/StatusPanel.tsx",
+      "prosthetic-arm-simulator/src/lib/animations.ts"
+    ],
+    "prosthetic-arm-simulator/src/components/ArmArena.tsx": [],
+    "prosthetic-arm-simulator/src/components/BrainPowerPanel.tsx": [],
+    "prosthetic-arm-simulator/src/components/StatusPanel.tsx": [],
+    "prosthetic-arm-simulator/src/lib/animations.ts": [],
+    "prosthetic-arm-simulator/src/lib/utils.ts": [],
+    "prosthetic-arm-simulator/tsconfig.json": [],
+    "quick_process.py": [
+      "config.py"
+    ],
+    "requirements.txt": [],
+    "simulate_tgam.py": [
+      "config.py"
+    ],
+    "train.py": [
+      "config.py",
+      "model.py"
+    ],
+    "train_moabb.py": [
+      "config.py"
+    ],
+    "universal_model.py": [
+      "config.py"
+    ],
+    "wheelchair-simulator/README.md": [],
+    "wheelchair-simulator/eslint.config.mjs": [],
+    "wheelchair-simulator/next.config.ts": [],
+    "wheelchair-simulator/npm": [],
+    "wheelchair-simulator/package.json": [],
+    "wheelchair-simulator/postcss.config.mjs": [],
+    "wheelchair-simulator/src/app/globals.css": [],
+    "wheelchair-simulator/src/app/layout.tsx": [
+      "wheelchair-simulator/src/app/globals.css"
+    ],
+    "wheelchair-simulator/src/app/page.tsx": [
+      "wheelchair-simulator/src/components/Arena.tsx",
+      "wheelchair-simulator/src/components/BrainPowerPanel.tsx",
+      "wheelchair-simulator/src/components/StatusPanel.tsx",
+      "wheelchair-simulator/src/lib/animations.ts"
+    ],
+    "wheelchair-simulator/src/components/Arena.tsx": [],
+    "wheelchair-simulator/src/components/BrainPowerPanel.tsx": [],
+    "wheelchair-simulator/src/components/StatusPanel.tsx": [],
+    "wheelchair-simulator/src/lib/animations.ts": [],
+    "wheelchair-simulator/src/lib/utils.ts": [],
+    "wheelchair-simulator/tsconfig.json": []
+  }
+}

@@ -1,0 +1,4311 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "58c33855aab761a6d8fceb87ce4dcb025b1a5e40",
+  "generatedAt": "2026-10-23T14:18:40.755Z",
+  "files": {
+    ".github/ISSUE_TEMPLATE/bug_report.md": {
+      "filePath": ".github/ISSUE_TEMPLATE/bug_report.md",
+      "contentHash": "00a23fd49ba71b31510d399e09b594426f0eb9f927377533a42c4521712a2803",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 33,
+      "hasStructuralAnalysis": false
+    },
+    "ARCHITECTURE.md": {
+      "filePath": "ARCHITECTURE.md",
+      "contentHash": "042f437c4330b8b30eb58ec005ff3b0a2f148f88347af2941c499a90cddf4508",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 563,
+      "hasStructuralAnalysis": false
+    },
+    "CHANGELOG.md": {
+      "filePath": "CHANGELOG.md",
+      "contentHash": "bd3ee01abfb74c7a3972cfe2f604fc583ba4fd94bbf1de0bd1aa5c13d3e7cc2e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 78,
+      "hasStructuralAnalysis": false
+    },
+    "LEGACY.md": {
+      "filePath": "LEGACY.md",
+      "contentHash": "c4810158b5496e176d23b915b539a2b70690336513dc5ba948d504108e856cc0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 24,
+      "hasStructuralAnalysis": false
+    },
+    "README.md": {
+      "filePath": "README.md",
+      "contentHash": "ea407f9dac8bfc64a754c791f79745241149af1921dcbf153bde1c13803279e0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 607,
+      "hasStructuralAnalysis": false
+    },
+    "RND_PAPER.md": {
+      "filePath": "RND_PAPER.md",
+      "contentHash": "fa090ce4e36213670740369aa560e7eb98fdb03f61f381e71c373b805082bafe",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 740,
+      "hasStructuralAnalysis": false
+    },
+    "adapt_drift.py": {
+      "filePath": "adapt_drift.py",
+      "contentHash": "dce366465167bbf1d05159c4498d481075862f27c97c511eb2c53a5e9667d52d",
+      "functions": [
+        {
+          "name": "clamp",
+          "params": [
+            "value",
+            "bounds_key"
+          ],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "parse_session_csv",
+          "params": [
+            "csv_path"
+          ],
+          "exported": true,
+          "lineCount": 42
+        },
+        {
+          "name": "parse_session_summary",
+          "params": [
+            "json_path"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "load_drift_profile",
+          "params": [],
+          "exported": true,
+          "lineCount": 29
+        },
+        {
+          "name": "apply_drift_to_threshold",
+          "params": [
+            "base_threshold",
+            "drift_profile"
+          ],
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "apply_drift_to_fatigue",
+          "params": [
+            "base_fatigue_threshold",
+            "drift_profile"
+          ],
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "get_warmup_extension",
+          "params": [
+            "drift_profile"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": true,
+          "lineCount": 49
+        }
+      ],
+      "classes": [
+        {
+          "name": "DriftAnalyzer",
+          "methods": [
+            "__init__",
+            "load_sessions",
+            "compute_trend",
+            "compute_ewma",
+            "analyze",
+            "save_profile",
+            "display_report",
+            "_display_rich",
+            "_display_plain"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 430
+        }
+      ],
+      "imports": [
+        {
+          "source": "csv",
+          "specifiers": [
+            "csv"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "datetime",
+          "specifiers": [
+            "datetime"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "LOGS_DIR",
+            "MODELS_DIR",
+            "MIN_SESSIONS_FOR_ADAPTATION",
+            "MIN_EVENTS_PER_SESSION",
+            "DRIFT_EWMA_ALPHA",
+            "DRIFT_PROFILE_PATH"
+          ]
+        }
+      ],
+      "exports": [
+        "clamp",
+        "parse_session_csv",
+        "parse_session_summary",
+        "DriftAnalyzer",
+        "load_drift_profile",
+        "apply_drift_to_threshold",
+        "apply_drift_to_fatigue",
+        "get_warmup_extension",
+        "main"
+      ],
+      "totalLines": 702,
+      "hasStructuralAnalysis": true
+    },
+    "auto_report.py": {
+      "filePath": "auto_report.py",
+      "contentHash": "ed3552c9b270d3c9583b076b2bf5117ac1aefa199746d2b31540b42b5c165e04",
+      "functions": [
+        {
+          "name": "parse_session_log",
+          "params": [
+            "date_str"
+          ],
+          "exported": true,
+          "lineCount": 60
+        },
+        {
+          "name": "generate_report_text",
+          "params": [
+            "stats",
+            "date_str"
+          ],
+          "exported": true,
+          "lineCount": 40
+        },
+        {
+          "name": "generate_pdf",
+          "params": [
+            "text_content",
+            "output_path"
+          ],
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": true,
+          "lineCount": 24
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "datetime",
+          "specifiers": [
+            "datetime"
+          ]
+        },
+        {
+          "source": "csv",
+          "specifiers": [
+            "csv"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        }
+      ],
+      "exports": [
+        "parse_session_log",
+        "generate_report_text",
+        "generate_pdf",
+        "main"
+      ],
+      "totalLines": 168,
+      "hasStructuralAnalysis": true
+    },
+    "bridge_bioamp.py": {
+      "filePath": "bridge_bioamp.py",
+      "contentHash": "20cab0dc1a08af622f319fa4837ca699242c2bb77e83c074c272a74f6fc977ac",
+      "functions": [
+        {
+          "name": "butter_bandpass",
+          "params": [
+            "lowcut",
+            "highcut",
+            "fs",
+            "order"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "butter_bandpass_sos",
+          "params": [
+            "lowcut",
+            "highcut",
+            "fs",
+            "order"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "bandpass_filter",
+          "params": [
+            "data",
+            "lowcut",
+            "highcut",
+            "fs",
+            "order"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "detect_emg_spike",
+          "params": [
+            "c3_raw",
+            "c4_raw"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "compute_mu_beta_power",
+          "params": [
+            "channel_samples",
+            "fs"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "compute_erd",
+          "params": [
+            "live_power",
+            "baseline_power"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "classify_direction",
+          "params": [
+            "c3_erd",
+            "c4_erd",
+            "erd_threshold",
+            "symmetry_tolerance"
+          ],
+          "exported": true,
+          "lineCount": 26
+        }
+      ],
+      "classes": [
+        {
+          "name": "BioAmpBridge",
+          "methods": [
+            "__init__",
+            "get_packet",
+            "run"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 143
+        }
+      ],
+      "imports": [
+        {
+          "source": "serial",
+          "specifiers": [
+            "serial"
+          ]
+        },
+        {
+          "source": "socket",
+          "specifiers": [
+            "socket"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "scipy.signal",
+          "specifiers": [
+            "butter",
+            "lfilter",
+            "welch",
+            "sosfilt"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "SERIAL_PORT",
+            "BAUD_RATE",
+            "EMG_THRESHOLD_UV",
+            "ERD_THRESHOLD",
+            "ERD_SYMMETRY_TOLERANCE",
+            "MODELS_DIR",
+            "MOTOR_CHANNEL_NAMES",
+            "N_MOTOR_CHANNELS",
+            "C3_INDEX",
+            "C4_INDEX"
+          ]
+        },
+        {
+          "source": "logger_orbit",
+          "specifiers": [
+            "orbit_logger"
+          ]
+        }
+      ],
+      "exports": [
+        "butter_bandpass",
+        "butter_bandpass_sos",
+        "bandpass_filter",
+        "detect_emg_spike",
+        "compute_mu_beta_power",
+        "compute_erd",
+        "classify_direction",
+        "BioAmpBridge"
+      ],
+      "totalLines": 280,
+      "hasStructuralAnalysis": true
+    },
+    "calibrate.py": {
+      "filePath": "calibrate.py",
+      "contentHash": "7280bbacd3320e622f58cbb155d47c67d9ba596079c01249ff820c14b37b15f5",
+      "functions": [],
+      "classes": [
+        {
+          "name": "Calibrator",
+          "methods": [
+            "__init__",
+            "show_startup_prompt",
+            "connect",
+            "get_data",
+            "compute_bandpower",
+            "check_signal_prerequisites",
+            "record_stage",
+            "verify_and_display_profile",
+            "run"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 334
+        }
+      ],
+      "imports": [
+        {
+          "source": "socket",
+          "specifiers": [
+            "socket"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "pickle",
+          "specifiers": [
+            "pickle"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "rich.console",
+          "specifiers": [
+            "Console"
+          ]
+        },
+        {
+          "source": "rich.table",
+          "specifiers": [
+            "Table"
+          ]
+        },
+        {
+          "source": "rich.progress",
+          "specifiers": [
+            "Progress",
+            "BarColumn",
+            "TextColumn",
+            "TimeRemainingColumn"
+          ]
+        },
+        {
+          "source": "scipy.signal",
+          "specifiers": [
+            "welch"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "MOTOR_CHANNEL_NAMES",
+            "C3_INDEX",
+            "C4_INDEX"
+          ]
+        }
+      ],
+      "exports": [
+        "Calibrator"
+      ],
+      "totalLines": 363,
+      "hasStructuralAnalysis": true
+    },
+    "collect_data.py": {
+      "filePath": "collect_data.py",
+      "contentHash": "31ef257ea4c3932dfd2ca445f5c43dd4ca8e577507c112256ffceee723dbbc48",
+      "functions": [],
+      "classes": [
+        {
+          "name": "UniversalCollector",
+          "methods": [
+            "__init__",
+            "_init_csv",
+            "connect",
+            "get_packet",
+            "collect_session"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 91
+        }
+      ],
+      "imports": [
+        {
+          "source": "socket",
+          "specifiers": [
+            "socket"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "csv",
+          "specifiers": [
+            "csv"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "pandas",
+          "specifiers": [
+            "pd"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "rich.console",
+          "specifiers": [
+            "Console"
+          ]
+        },
+        {
+          "source": "rich.progress",
+          "specifiers": [
+            "Progress",
+            "BarColumn",
+            "TextColumn",
+            "TimeRemainingColumn"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "DATA_DIR",
+            "CLASS_NAMES"
+          ]
+        }
+      ],
+      "exports": [
+        "UniversalCollector"
+      ],
+      "totalLines": 119,
+      "hasStructuralAnalysis": true
+    },
+    "config.py": {
+      "filePath": "config.py",
+      "contentHash": "bf36f1faaabcd785dcfd8f90195955fc3eaaf821a2315c4845f1211bb0c8530b",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 107,
+      "hasStructuralAnalysis": true
+    },
+    "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D1_T1.mat": {
+      "filePath": "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D1_T1.mat",
+      "contentHash": "12f01b322e116f0d2cba0261058a18f5e2392a713d9bc7b9368862d88902ed6a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 771365,
+      "hasStructuralAnalysis": false
+    },
+    "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D1_T2.mat": {
+      "filePath": "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D1_T2.mat",
+      "contentHash": "d85b72e3c8a5bf9a093a728053835044876a8704f0e2cb2cb3e643f5603b2304",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 811395,
+      "hasStructuralAnalysis": false
+    },
+    "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D2_T1.mat": {
+      "filePath": "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D2_T1.mat",
+      "contentHash": "cd290c08c2d44774c8f1dfdc12592e15b3012716dd34e5d7e9cb3b5db04c40b8",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 808964,
+      "hasStructuralAnalysis": false
+    },
+    "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D2_T2.mat": {
+      "filePath": "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D2_T2.mat",
+      "contentHash": "1208625b27d5aab1ded870c214c9c636cc5f845b1e4738dc6c1fc481e46dd6f6",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 791312,
+      "hasStructuralAnalysis": false
+    },
+    "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D3_T1.mat": {
+      "filePath": "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D3_T1.mat",
+      "contentHash": "0ba4bd5ea26c9d6d7bffd302987ec57e2485cc3575fb1d83c7d3af39c2a38a2d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 819345,
+      "hasStructuralAnalysis": false
+    },
+    "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D3_T2.mat": {
+      "filePath": "data/db6_subject/DB6_s1_a/DB6_s1_a/S1_D3_T2.mat",
+      "contentHash": "4b89ac7f109b0473345bc15d468876ad8c130c8269860db954a55a397f07abe1",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 800724,
+      "hasStructuralAnalysis": false
+    },
+    "data/db6_subject/DB6_s1_a/__MACOSX/DB6_s1_a/._.DS_Store": {
+      "filePath": "data/db6_subject/DB6_s1_a/__MACOSX/DB6_s1_a/._.DS_Store",
+      "contentHash": "74694443e1068dda8cb89e61b380ea27bcf410293bb68b4680e9d1253da73d4d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 1,
+      "hasStructuralAnalysis": false
+    },
+    "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D4_T1.mat": {
+      "filePath": "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D4_T1.mat",
+      "contentHash": "16edcb6890e99f7c174bf8cd4279b95625823629b887bf3ac6813c479eef2dd3",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 829406,
+      "hasStructuralAnalysis": false
+    },
+    "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D4_T2.mat": {
+      "filePath": "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D4_T2.mat",
+      "contentHash": "14bd05e91a9803a802a5b216d90ee61f0556cf81107e779625573a61736086c4",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 742129,
+      "hasStructuralAnalysis": false
+    },
+    "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D5_T1.mat": {
+      "filePath": "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D5_T1.mat",
+      "contentHash": "0762d4c045947cd630cadad984b4476be2018d1bd38445736f9f602acb0f119b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 764495,
+      "hasStructuralAnalysis": false
+    },
+    "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D5_T2.mat": {
+      "filePath": "data/db6_subject/DB6_s1_b/DB6_s1_b/S1_D5_T2.mat",
+      "contentHash": "02072c884cbc01340f6f2a96abde6065d9dc021cd4025c4875f69f0b9cec73be",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 820550,
+      "hasStructuralAnalysis": false
+    },
+    "data/db6_subject/baseline/results_baseline.csv": {
+      "filePath": "data/db6_subject/baseline/results_baseline.csv",
+      "contentHash": "78619cff36774ffd4a15349a8307db1775f09d1d736c75d1631fec99ab6d97c1",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 12,
+      "hasStructuralAnalysis": false
+    },
+    "data/db6_subject/step3/summary.csv": {
+      "filePath": "data/db6_subject/step3/summary.csv",
+      "contentHash": "7447fad681ba88f2c1034740b78d8119e6419c15994058c17224d3fc6492f76d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 62,
+      "hasStructuralAnalysis": false
+    },
+    "data/db6_subject/step3b/step3b_summary.csv": {
+      "filePath": "data/db6_subject/step3b/step3b_summary.csv",
+      "contentHash": "9aed2bfc3941315d136939a5f7fd34ca724572114aed283254b34a907db34a0d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 62,
+      "hasStructuralAnalysis": false
+    },
+    "data/moabb_stats.pkl": {
+      "filePath": "data/moabb_stats.pkl",
+      "contentHash": "75cb319747555ae914f8f1cec38b2791109ccd415e780554927e919e077c4284",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 5,
+      "hasStructuralAnalysis": false
+    },
+    "demo_mode.py": {
+      "filePath": "demo_mode.py",
+      "contentHash": "5508f984095b115ca083b2a4ffcac803c9415fafa414e92ea082f21ad02d915b",
+      "functions": [
+        {
+          "name": "check_dependencies",
+          "params": [],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "check_model",
+          "params": [],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "launch_simulator",
+          "params": [],
+          "returnType": "subprocess.Popen",
+          "exported": true,
+          "lineCount": 29
+        },
+        {
+          "name": "wait_for_simulator",
+          "params": [
+            "proc"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "launch_dashboard",
+          "params": [],
+          "returnType": "subprocess.Popen",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "show_instructions",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "terminate_safely",
+          "params": [
+            "proc",
+            "name"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "run_demo",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 57
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "importlib",
+          "specifiers": [
+            "importlib"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "platform",
+          "specifiers": [
+            "platform"
+          ]
+        },
+        {
+          "source": "signal",
+          "specifiers": [
+            "signal"
+          ]
+        },
+        {
+          "source": "socket",
+          "specifiers": [
+            "socket"
+          ]
+        },
+        {
+          "source": "subprocess",
+          "specifiers": [
+            "subprocess"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        }
+      ],
+      "exports": [
+        "check_dependencies",
+        "check_model",
+        "launch_simulator",
+        "wait_for_simulator",
+        "launch_dashboard",
+        "show_instructions",
+        "terminate_safely",
+        "run_demo"
+      ],
+      "totalLines": 271,
+      "hasStructuralAnalysis": true
+    },
+    "diagnose.py": {
+      "filePath": "diagnose.py",
+      "contentHash": "62b52198c3315f6893f9219c350afa9ac728e75cacefd6737964f393ad0da4e8",
+      "functions": [
+        {
+          "name": "classify_epoch",
+          "params": [
+            "epoch"
+          ],
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "run_system_diagnostics",
+          "params": [
+            "stats"
+          ],
+          "exported": true,
+          "lineCount": 59
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "pickle",
+          "specifiers": [
+            "pickle"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "mne",
+          "specifiers": [
+            "mne"
+          ]
+        },
+        {
+          "source": "urllib.request",
+          "specifiers": [
+            "urllib.request"
+          ]
+        },
+        {
+          "source": "tempfile",
+          "specifiers": [
+            "tempfile"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        }
+      ],
+      "exports": [
+        "classify_epoch",
+        "run_system_diagnostics"
+      ],
+      "totalLines": 230,
+      "hasStructuralAnalysis": true
+    },
+    "evaluate.py": {
+      "filePath": "evaluate.py",
+      "contentHash": "c651027a7ee910c1189faacc3320bd051d226e0db08aa480b487487178971fe3",
+      "functions": [
+        {
+          "name": "evaluate_model",
+          "params": [],
+          "exported": true,
+          "lineCount": 89
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "pandas",
+          "specifiers": [
+            "pd"
+          ]
+        },
+        {
+          "source": "matplotlib.pyplot",
+          "specifiers": [
+            "plt"
+          ]
+        },
+        {
+          "source": "seaborn",
+          "specifiers": [
+            "sns"
+          ]
+        },
+        {
+          "source": "sklearn.metrics",
+          "specifiers": [
+            "classification_report",
+            "confusion_matrix"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "DATA_DIR",
+            "MODELS_DIR",
+            "RESULTS_DIR",
+            "USE_CNN_LSTM",
+            "CLASS_NAMES"
+          ]
+        }
+      ],
+      "exports": [
+        "evaluate_model"
+      ],
+      "totalLines": 106,
+      "hasStructuralAnalysis": true
+    },
+    "experiments/db6/db6_baseline.py": {
+      "filePath": "experiments/db6/db6_baseline.py",
+      "contentHash": "5f9a4b5849f678b4301569335ccc41ae872245b62a2cd6c5d0867451e42a53db",
+      "functions": [
+        {
+          "name": "parse_reps",
+          "params": [
+            "s"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "load_mat",
+          "params": [
+            "path"
+          ],
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "col",
+          "params": [
+            "d",
+            "*names"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "real_channels",
+          "params": [
+            "emg",
+            "tol"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "ffill_nonzero",
+          "params": [
+            "v"
+          ],
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "bandpass_causal",
+          "params": [
+            "emg",
+            "fs"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "make_windows",
+          "params": [
+            "sig",
+            "lab",
+            "rep",
+            "obj",
+            "fs"
+          ],
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "zc_threshold",
+          "params": [
+            "X"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "_features_block",
+          "params": [
+            "X",
+            "thr"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "features",
+          "params": [
+            "X",
+            "thr",
+            "chunk"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "report",
+          "params": [
+            "tag",
+            "y_true",
+            "y_pred"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "train_lda",
+          "params": [
+            "F",
+            "y"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "check_split",
+          "params": [
+            "name",
+            "y",
+            "tr",
+            "te"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "object_report",
+          "params": [
+            "o",
+            "tr",
+            "te"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": true,
+          "lineCount": 167
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "csv",
+          "specifiers": [
+            "csv"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "scipy.io",
+          "specifiers": [
+            "sio"
+          ]
+        },
+        {
+          "source": "scipy.signal",
+          "specifiers": [
+            "butter",
+            "sosfilt"
+          ]
+        }
+      ],
+      "exports": [
+        "parse_reps",
+        "load_mat",
+        "col",
+        "real_channels",
+        "ffill_nonzero",
+        "bandpass_causal",
+        "make_windows",
+        "zc_threshold",
+        "_features_block",
+        "features",
+        "report",
+        "train_lda",
+        "check_split",
+        "object_report",
+        "main"
+      ],
+      "totalLines": 378,
+      "hasStructuralAnalysis": true
+    },
+    "experiments/db6/db6_drift_step3.py": {
+      "filePath": "experiments/db6/db6_drift_step3.py",
+      "contentHash": "95802c989d3f95bb298ca278b6cb76648cc498fcaa0f43b4db9972926d84d84e",
+      "functions": [
+        {
+          "name": "load_mat",
+          "params": [
+            "path"
+          ],
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "col",
+          "params": [
+            "d",
+            "*names"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "find_files",
+          "params": [
+            "root"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "parse_reps",
+          "params": [
+            "s"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "make_filters",
+          "params": [
+            "low",
+            "high",
+            "notch_hz"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "fill_reps",
+          "params": [
+            "rep"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "window_meta",
+          "params": [
+            "lab",
+            "rep",
+            "obj",
+            "nwin_from"
+          ],
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "window_feats",
+          "params": [
+            "x",
+            "starts",
+            "thr"
+          ],
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "mav_only",
+          "params": [
+            "x",
+            "starts"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "extract_session",
+          "params": [
+            "path",
+            "sos",
+            "ref",
+            "used_ref"
+          ],
+          "exported": true,
+          "lineCount": 34
+        },
+        {
+          "name": "zscore",
+          "params": [
+            "F"
+          ],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "feat_cols",
+          "params": [
+            "chs",
+            "nC"
+          ],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "fit_eval",
+          "params": [
+            "Ftr",
+            "ytr",
+            "Fte",
+            "yte",
+            "cols"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "run",
+          "params": [
+            "files",
+            "sos",
+            "args",
+            "drop",
+            "label"
+          ],
+          "exported": true,
+          "lineCount": 62
+        },
+        {
+          "name": "print_tables",
+          "params": [
+            "rows",
+            "modes"
+          ],
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "save_outputs",
+          "params": [
+            "rows",
+            "outdir"
+          ],
+          "exported": true,
+          "lineCount": 34
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": true,
+          "lineCount": 52
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "scipy.io",
+          "specifiers": [
+            "sio"
+          ]
+        },
+        {
+          "source": "numpy.lib.stride_tricks",
+          "specifiers": [
+            "sliding_window_view"
+          ]
+        },
+        {
+          "source": "scipy.signal",
+          "specifiers": [
+            "butter",
+            "iirnotch",
+            "sosfilt"
+          ]
+        },
+        {
+          "source": "sklearn.discriminant_analysis",
+          "specifiers": [
+            "LinearDiscriminantAnalysis"
+          ]
+        },
+        {
+          "source": "sklearn.metrics",
+          "specifiers": [
+            "balanced_accuracy_score"
+          ]
+        }
+      ],
+      "exports": [
+        "load_mat",
+        "col",
+        "find_files",
+        "parse_reps",
+        "make_filters",
+        "fill_reps",
+        "window_meta",
+        "window_feats",
+        "mav_only",
+        "extract_session",
+        "zscore",
+        "feat_cols",
+        "fit_eval",
+        "run",
+        "print_tables",
+        "save_outputs",
+        "main"
+      ],
+      "totalLines": 394,
+      "hasStructuralAnalysis": true
+    },
+    "experiments/db6/db6_explore.py": {
+      "filePath": "experiments/db6/db6_explore.py",
+      "contentHash": "62e700362ede28b60b027dca61e5ed9c0679749d229da6e652ad5e2f53a588ab",
+      "functions": [
+        {
+          "name": "unzip_all",
+          "params": [
+            "zips",
+            "out"
+          ],
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "load_mat",
+          "params": [
+            "path"
+          ],
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "col",
+          "params": [
+            "d",
+            "*names"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "list_mat_files",
+          "params": [
+            "root"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "describe",
+          "params": [
+            "d"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "emg_channels",
+          "params": [
+            "emg",
+            "tol",
+            "quiet"
+          ],
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "channel_health",
+          "params": [
+            "emg",
+            "used",
+            "quiet"
+          ],
+          "exported": true,
+          "lineCount": 26
+        },
+        {
+          "name": "mains_ratio",
+          "params": [
+            "emg",
+            "used",
+            "fs"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "all_summary",
+          "params": [
+            "files",
+            "fs"
+          ],
+          "exported": true,
+          "lineCount": 33
+        },
+        {
+          "name": "label_report",
+          "params": [
+            "d"
+          ],
+          "exported": true,
+          "lineCount": 37
+        },
+        {
+          "name": "make_figures",
+          "params": [
+            "emg",
+            "used",
+            "d",
+            "fs",
+            "seconds",
+            "outdir",
+            "name",
+            "show"
+          ],
+          "exported": true,
+          "lineCount": 42
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": true,
+          "lineCount": 46
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "zipfile",
+          "specifiers": [
+            "zipfile"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "scipy.io",
+          "specifiers": [
+            "sio"
+          ]
+        }
+      ],
+      "exports": [
+        "unzip_all",
+        "load_mat",
+        "col",
+        "list_mat_files",
+        "describe",
+        "emg_channels",
+        "channel_health",
+        "mains_ratio",
+        "all_summary",
+        "label_report",
+        "make_figures",
+        "main"
+      ],
+      "totalLines": 317,
+      "hasStructuralAnalysis": true
+    },
+    "experiments/db6/db6_step3c.py": {
+      "filePath": "experiments/db6/db6_step3c.py",
+      "contentHash": "bc0887c6f9c93c1cd27c3ea4d947c9cc907a8fc560f6b2ee11a0569d115ba638",
+      "functions": [
+        {
+          "name": "parse_reps",
+          "params": [
+            "s"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "load_mat",
+          "params": [
+            "path"
+          ],
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "col",
+          "params": [
+            "d",
+            "*names"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "real_channels",
+          "params": [
+            "emg",
+            "tol"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "ffill_nonzero",
+          "params": [
+            "v"
+          ],
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "bandpass_causal",
+          "params": [
+            "emg",
+            "fs"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "make_windows",
+          "params": [
+            "sig",
+            "lab",
+            "rep",
+            "obj",
+            "fs"
+          ],
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "zc_threshold",
+          "params": [
+            "X"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "_features_block",
+          "params": [
+            "X",
+            "thr"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "features",
+          "params": [
+            "X",
+            "thr",
+            "chunk"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "train_lda",
+          "params": [
+            "F",
+            "y"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "zfit",
+          "params": [
+            "F"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "zapply",
+          "params": [
+            "F",
+            "mu",
+            "sd"
+          ],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "roll_zscore",
+          "params": [
+            "F",
+            "halflife"
+          ],
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "transform",
+          "params": [
+            "mode",
+            "F",
+            "y",
+            "r",
+            "train_reps",
+            "causal_windows",
+            "halflife"
+          ],
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "win_metrics",
+          "params": [
+            "y",
+            "pred"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "causal_majority",
+          "params": [
+            "pred",
+            "k"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "rest_events_per_min",
+          "params": [
+            "y",
+            "pred_sm"
+          ],
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "g2r_miss",
+          "params": [
+            "y",
+            "pred_sm"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "print_confusion",
+          "params": [
+            "tag",
+            "y",
+            "pred",
+            "classes"
+          ],
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "boot_ci",
+          "params": [
+            "preds",
+            "base_pred",
+            "ys",
+            "reps_list",
+            "n_boot",
+            "seed"
+          ],
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": true,
+          "lineCount": 244
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "csv",
+          "specifiers": [
+            "csv"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "warnings",
+          "specifiers": [
+            "warnings"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "scipy.io",
+          "specifiers": [
+            "sio"
+          ]
+        },
+        {
+          "source": "scipy.signal",
+          "specifiers": [
+            "butter",
+            "sosfilt"
+          ]
+        }
+      ],
+      "exports": [
+        "parse_reps",
+        "load_mat",
+        "col",
+        "real_channels",
+        "ffill_nonzero",
+        "bandpass_causal",
+        "make_windows",
+        "zc_threshold",
+        "_features_block",
+        "features",
+        "train_lda",
+        "zfit",
+        "zapply",
+        "roll_zscore",
+        "transform",
+        "win_metrics",
+        "causal_majority",
+        "rest_events_per_min",
+        "g2r_miss",
+        "print_confusion",
+        "boot_ci",
+        "main"
+      ],
+      "totalLines": 551,
+      "hasStructuralAnalysis": true
+    },
+    "fetch_and_process_openneuro.py": {
+      "filePath": "fetch_and_process_openneuro.py",
+      "contentHash": "c1b14da65a2deceee2631d2dc3b00fce51112e7368c8ac07152cfe3d0fd34248",
+      "functions": [
+        {
+          "name": "fetch_openneuro_dataset",
+          "params": [
+            "dataset_id"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "extract_tgam_features_from_raw",
+          "params": [
+            "raw"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 52
+        },
+        {
+          "name": "process_and_store",
+          "params": [],
+          "exported": true,
+          "lineCount": 77
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "mne",
+          "specifiers": [
+            "mne"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "pandas",
+          "specifiers": [
+            "pd"
+          ]
+        },
+        {
+          "source": "openneuro",
+          "specifiers": [
+            "openneuro"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "List",
+            "Dict"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "DATA_DIR",
+            "N_FEATURES_RAW",
+            "SEED",
+            "TRAIN_WINDOW_SIZE"
+          ]
+        }
+      ],
+      "exports": [
+        "fetch_openneuro_dataset",
+        "extract_tgam_features_from_raw",
+        "process_and_store"
+      ],
+      "totalLines": 188,
+      "hasStructuralAnalysis": true
+    },
+    "fine_tune.py": {
+      "filePath": "fine_tune.py",
+      "contentHash": "36eae256e10196dc7a965e79d6782a3aab817a7dd068acb03a5f738510ae2e9f",
+      "functions": [
+        {
+          "name": "pretrain_on_external_data",
+          "params": [],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "fine_tune_on_personal_data",
+          "params": [],
+          "exported": true,
+          "lineCount": 57
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "torch.nn",
+          "specifiers": [
+            "nn"
+          ]
+        },
+        {
+          "source": "torch.optim",
+          "specifiers": [
+            "optim"
+          ]
+        },
+        {
+          "source": "torch.utils.data",
+          "specifiers": [
+            "DataLoader",
+            "TensorDataset"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "DATA_DIR",
+            "MODELS_DIR",
+            "USE_CNN_LSTM",
+            "SEED",
+            "BATCH_SIZE",
+            "LEARNING_RATE",
+            "WEIGHT_DECAY",
+            "N_CLASSES"
+          ]
+        },
+        {
+          "source": "model",
+          "specifiers": [
+            "get_model"
+          ]
+        }
+      ],
+      "exports": [
+        "pretrain_on_external_data",
+        "fine_tune_on_personal_data"
+      ],
+      "totalLines": 106,
+      "hasStructuralAnalysis": true
+    },
+    "future_ideas.md": {
+      "filePath": "future_ideas.md",
+      "contentHash": "845b6e63072ff6c0c374b2c8d36fde0351ffea5a46f9014bfcee985a36b76e6f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 106,
+      "hasStructuralAnalysis": false
+    },
+    "logger_orbit.py": {
+      "filePath": "logger_orbit.py",
+      "contentHash": "60b90b1d547be2734974a7e525f68ebb1ce955ade7f409540c29bb2fdf75299f",
+      "functions": [],
+      "classes": [
+        {
+          "name": "OrbitLogger",
+          "methods": [
+            "__init__",
+            "log_session_start",
+            "log_event",
+            "log_session_end",
+            "get_summary"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 196
+        }
+      ],
+      "imports": [
+        {
+          "source": "csv",
+          "specifiers": [
+            "csv"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "threading",
+          "specifiers": [
+            "threading"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        },
+        {
+          "source": "datetime",
+          "specifiers": [
+            "datetime"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "CLASS_NAMES"
+          ]
+        }
+      ],
+      "exports": [
+        "OrbitLogger"
+      ],
+      "totalLines": 250,
+      "hasStructuralAnalysis": true
+    },
+    "logs/session_20260715_221647_summary.json": {
+      "filePath": "logs/session_20260715_221647_summary.json",
+      "contentHash": "4d2eaa7a43af5b82a2aae38698505b718f9e1d61f74d46dc9eb5a67062ed4ddc",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 14,
+      "hasStructuralAnalysis": false
+    },
+    "logs/session_20260715_225134_summary.json": {
+      "filePath": "logs/session_20260715_225134_summary.json",
+      "contentHash": "a84c7f49724d84c4d55e5b0f06ee25bd01781e985e5d6f2856a2d5d685ebcd6f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 14,
+      "hasStructuralAnalysis": false
+    },
+    "logs/session_20260715_230508_summary.json": {
+      "filePath": "logs/session_20260715_230508_summary.json",
+      "contentHash": "5821dfcc42d193b030a0a2f6ec882f4945d1d3d59830028b3fbbc61a932e8acb",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 14,
+      "hasStructuralAnalysis": false
+    },
+    "model.py": {
+      "filePath": "model.py",
+      "contentHash": "e1dab58a46146a805dc086fb650b07db71a880d7f27c7b1cb25d5f948e8d8859",
+      "functions": [
+        {
+          "name": "get_model",
+          "params": [
+            "use_cnn_lstm",
+            "input_size",
+            "n_classes"
+          ],
+          "returnType": "nn.Module",
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "classes": [
+        {
+          "name": "SelfAttention",
+          "methods": [
+            "__init__",
+            "forward"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "EEGClassifier_LSTM",
+          "methods": [
+            "__init__",
+            "forward"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 53
+        },
+        {
+          "name": "EEGClassifier_CNN_LSTM",
+          "methods": [
+            "__init__",
+            "forward"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 72
+        }
+      ],
+      "imports": [
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "torch.nn",
+          "specifiers": [
+            "nn"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Optional"
+          ]
+        }
+      ],
+      "exports": [
+        "SelfAttention",
+        "EEGClassifier_LSTM",
+        "EEGClassifier_CNN_LSTM",
+        "get_model"
+      ],
+      "totalLines": 155,
+      "hasStructuralAnalysis": true
+    },
+    "models/drift_profile.json": {
+      "filePath": "models/drift_profile.json",
+      "contentHash": "c66a56c935e5a100e9d276c7f9305bc62c5277d2ee80789431fe8d5ab8820921",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 50,
+      "hasStructuralAnalysis": false
+    },
+    "models/model1/.gitkeep": {
+      "filePath": "models/model1/.gitkeep",
+      "contentHash": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": false
+    },
+    "models/model1/README.md": {
+      "filePath": "models/model1/README.md",
+      "contentHash": "2f3141bb5761cbbd30d63b0b8a45180fe08f489909be2d7865efaed269e7bf12",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 54,
+      "hasStructuralAnalysis": false
+    },
+    "models/model1/model_spec.json": {
+      "filePath": "models/model1/model_spec.json",
+      "contentHash": "ee9b893049bc3f381559a296812d83306aa3c20b6dcb68f4c6dd33da869e48b1",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 32,
+      "hasStructuralAnalysis": false
+    },
+    "models/model2/.gitkeep": {
+      "filePath": "models/model2/.gitkeep",
+      "contentHash": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": false
+    },
+    "models/prosthetic arm model/.gitkeep": {
+      "filePath": "models/prosthetic arm model/.gitkeep",
+      "contentHash": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": false
+    },
+    "notebooks/01_data_exploration.ipynb": {
+      "filePath": "notebooks/01_data_exploration.ipynb",
+      "contentHash": "605932d870fa14cb11fde0664af3d58b0ba0193f38e5e8d25d569183e5b63ed8",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 193,
+      "hasStructuralAnalysis": false
+    },
+    "notebooks/02_model_experiments.ipynb": {
+      "filePath": "notebooks/02_model_experiments.ipynb",
+      "contentHash": "1d6110b0d6c00c5a5bb96f5fd80af9805d5a4296a2af7a31d760406ee22d3217",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 229,
+      "hasStructuralAnalysis": false
+    },
+    "notebooks/03_results_analysis.ipynb": {
+      "filePath": "notebooks/03_results_analysis.ipynb",
+      "contentHash": "ab1b364f3101c60c807f34d14de0518760a20027020f08fe1c98ed714637d0a9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 154,
+      "hasStructuralAnalysis": false
+    },
+    "notebooks/Architecture_Workflow.ipynb": {
+      "filePath": "notebooks/Architecture_Workflow.ipynb",
+      "contentHash": "1fdcc105863f16b36166b804a758786910f389853a2c3bcc5f35019e8989beef",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 126,
+      "hasStructuralAnalysis": false
+    },
+    "predict_realtime.py": {
+      "filePath": "predict_realtime.py",
+      "contentHash": "86a6d8b370d12fee5bf899bd137a2429763a0b2c952e16070b7d40c8a462fc72",
+      "functions": [],
+      "classes": [
+        {
+          "name": "BCIArena",
+          "methods": [
+            "__init__",
+            "update",
+            "render"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 35
+        },
+        {
+          "name": "RealtimePredictor",
+          "methods": [
+            "__init__",
+            "get_data",
+            "build_features",
+            "is_signal_valid",
+            "compute_fatigue",
+            "classify_moabb",
+            "classify_moabb",
+            "classify_biosensor",
+            "build_layout",
+            "run"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 492
+        }
+      ],
+      "imports": [
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "socket",
+          "specifiers": [
+            "socket"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "pickle",
+          "specifiers": [
+            "pickle"
+          ]
+        },
+        {
+          "source": "collections",
+          "specifiers": [
+            "deque"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "rich.console",
+          "specifiers": [
+            "Console",
+            "Group"
+          ]
+        },
+        {
+          "source": "rich.live",
+          "specifiers": [
+            "Live"
+          ]
+        },
+        {
+          "source": "rich.panel",
+          "specifiers": [
+            "Panel"
+          ]
+        },
+        {
+          "source": "rich.layout",
+          "specifiers": [
+            "Layout"
+          ]
+        },
+        {
+          "source": "rich.table",
+          "specifiers": [
+            "Table"
+          ]
+        },
+        {
+          "source": "scipy.signal",
+          "specifiers": [
+            "welch"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "*"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "C3_INDEX",
+            "C4_INDEX",
+            "N_MOTOR_CHANNELS"
+          ]
+        },
+        {
+          "source": "logger_orbit",
+          "specifiers": [
+            "orbit_logger"
+          ]
+        },
+        {
+          "source": "adapt_drift",
+          "specifiers": [
+            "load_drift_profile",
+            "apply_drift_to_threshold",
+            "apply_drift_to_fatigue",
+            "get_warmup_extension"
+          ]
+        },
+        {
+          "source": "universal_model",
+          "specifiers": [
+            "get_universal_model",
+            "UniversalModel"
+          ]
+        }
+      ],
+      "exports": [
+        "BCIArena",
+        "RealtimePredictor"
+      ],
+      "totalLines": 580,
+      "hasStructuralAnalysis": true
+    },
+    "predict_websocket.py": {
+      "filePath": "predict_websocket.py",
+      "contentHash": "a2c94332bb1cbfdcd16e888633ba455260aabd92844a0b24704e2c27d5501498",
+      "functions": [],
+      "classes": [
+        {
+          "name": "RealtimePredictor",
+          "methods": [
+            "__init__",
+            "start_ws_server",
+            "get_data",
+            "build_features",
+            "is_signal_valid",
+            "compute_fatigue",
+            "classify_moabb",
+            "classify_biosensor",
+            "run"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 475
+        }
+      ],
+      "imports": [
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "socket",
+          "specifiers": [
+            "socket"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "pickle",
+          "specifiers": [
+            "pickle"
+          ]
+        },
+        {
+          "source": "threading",
+          "specifiers": [
+            "threading"
+          ]
+        },
+        {
+          "source": "asyncio",
+          "specifiers": [
+            "asyncio"
+          ]
+        },
+        {
+          "source": "websockets",
+          "specifiers": [
+            "websockets"
+          ]
+        },
+        {
+          "source": "collections",
+          "specifiers": [
+            "deque"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "scipy.signal",
+          "specifiers": [
+            "welch"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "*"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "C3_INDEX",
+            "C4_INDEX",
+            "N_MOTOR_CHANNELS"
+          ]
+        },
+        {
+          "source": "logger_orbit",
+          "specifiers": [
+            "orbit_logger"
+          ]
+        },
+        {
+          "source": "adapt_drift",
+          "specifiers": [
+            "load_drift_profile",
+            "apply_drift_to_threshold",
+            "apply_drift_to_fatigue",
+            "get_warmup_extension"
+          ]
+        },
+        {
+          "source": "universal_model",
+          "specifiers": [
+            "get_universal_model",
+            "UniversalModel"
+          ]
+        }
+      ],
+      "exports": [
+        "RealtimePredictor"
+      ],
+      "totalLines": 531,
+      "hasStructuralAnalysis": true
+    },
+    "preprocess.py": {
+      "filePath": "preprocess.py",
+      "contentHash": "f6e45f3678386f4bf3733e7e4fecf4adaea28bdca9dad29f4ce54bcc400d076a",
+      "functions": [
+        {
+          "name": "add_derived_features",
+          "params": [
+            "df"
+          ],
+          "returnType": "pd.DataFrame",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "augment_data",
+          "params": [
+            "X"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 29
+        },
+        {
+          "name": "create_sliding_windows",
+          "params": [
+            "df"
+          ],
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "run_preprocessing_pipeline",
+          "params": [],
+          "exported": true,
+          "lineCount": 96
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "pandas",
+          "specifiers": [
+            "pd"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "joblib",
+          "specifiers": [
+            "joblib"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "sklearn.preprocessing",
+          "specifiers": [
+            "RobustScaler"
+          ]
+        },
+        {
+          "source": "sklearn.model_selection",
+          "specifiers": [
+            "train_test_split"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "DATA_DIR",
+            "MODELS_DIR",
+            "SEED",
+            "TRAIN_WINDOW_SIZE",
+            "STRIDE"
+          ]
+        }
+      ],
+      "exports": [
+        "add_derived_features",
+        "augment_data",
+        "create_sliding_windows",
+        "run_preprocessing_pipeline"
+      ],
+      "totalLines": 182,
+      "hasStructuralAnalysis": true
+    },
+    "prosthetic-arm-simulator/README.md": {
+      "filePath": "prosthetic-arm-simulator/README.md",
+      "contentHash": "36199fa7ff49a62a958e83c1fe15a31ec21a7d02541ee3e38b3ba1f45a138b57",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 102,
+      "hasStructuralAnalysis": false
+    },
+    "prosthetic-arm-simulator/eslint.config.mjs": {
+      "filePath": "prosthetic-arm-simulator/eslint.config.mjs",
+      "contentHash": "780ef586c168b5849bf2becda678d266a86899a9e6d18d8197f6a643589ecac9",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "path",
+          "specifiers": [
+            "dirname"
+          ]
+        },
+        {
+          "source": "url",
+          "specifiers": [
+            "fileURLToPath"
+          ]
+        },
+        {
+          "source": "@eslint/eslintrc",
+          "specifiers": [
+            "FlatCompat"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "prosthetic-arm-simulator/next-env.d.ts": {
+      "filePath": "prosthetic-arm-simulator/next-env.d.ts",
+      "contentHash": "f4e8976c19fc926644d72610bf1058bd6bf52add97e46a02bc0b912a751625c0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 7,
+      "hasStructuralAnalysis": true
+    },
+    "prosthetic-arm-simulator/next.config.ts": {
+      "filePath": "prosthetic-arm-simulator/next.config.ts",
+      "contentHash": "614bce25b089c3f19b1e17a6346c74b858034040154c6621e7d35303004767cc",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "next",
+          "specifiers": [
+            "NextConfig"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 8,
+      "hasStructuralAnalysis": true
+    },
+    "prosthetic-arm-simulator/package.json": {
+      "filePath": "prosthetic-arm-simulator/package.json",
+      "contentHash": "124eaf1d0bf0aced929ec2c8efebf80903e0af501699c914d930abc9964bb772",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 33,
+      "hasStructuralAnalysis": false
+    },
+    "prosthetic-arm-simulator/postcss.config.mjs": {
+      "filePath": "prosthetic-arm-simulator/postcss.config.mjs",
+      "contentHash": "141ef24ca27a99d08962210fdf20212d3435fdcfa21b46cd88b44d22f751dfae",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 6,
+      "hasStructuralAnalysis": true
+    },
+    "prosthetic-arm-simulator/src/app/globals.css": {
+      "filePath": "prosthetic-arm-simulator/src/app/globals.css",
+      "contentHash": "53e1d8977a112887f658f1aba196b30aeb1d53d0b1aaa8186e551702eb7a3caf",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 63,
+      "hasStructuralAnalysis": false
+    },
+    "prosthetic-arm-simulator/src/app/layout.tsx": {
+      "filePath": "prosthetic-arm-simulator/src/app/layout.tsx",
+      "contentHash": "686a10188a487a1918e3c6269d15c979541aa4774c255ff9365ad31bc5e2ba7f",
+      "functions": [
+        {
+          "name": "RootLayout",
+          "params": [
+            "{\n  children,\n}"
+          ],
+          "exported": true,
+          "lineCount": 13
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "next",
+          "specifiers": [
+            "Metadata"
+          ]
+        },
+        {
+          "source": "next/font/google",
+          "specifiers": [
+            "Syne",
+            "DM_Sans"
+          ]
+        },
+        {
+          "source": "./globals.css",
+          "specifiers": []
+        }
+      ],
+      "exports": [
+        "metadata",
+        "RootLayout"
+      ],
+      "totalLines": 40,
+      "hasStructuralAnalysis": true
+    },
+    "prosthetic-arm-simulator/src/app/page.tsx": {
+      "filePath": "prosthetic-arm-simulator/src/app/page.tsx",
+      "contentHash": "64a00c8842d5afbf11635d5e6dfe7b5da4ef8e11417fb284a533fe4a03a1c7ff",
+      "functions": [
+        {
+          "name": "Home",
+          "params": [],
+          "exported": true,
+          "lineCount": 311
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useState",
+            "useCallback"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion",
+            "AnimatePresence",
+            "useReducedMotion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Wifi",
+            "WifiOff",
+            "Hand"
+          ]
+        },
+        {
+          "source": "@/components/ArmArena",
+          "specifiers": [
+            "ArmArena"
+          ]
+        },
+        {
+          "source": "@/components/StatusPanel",
+          "specifiers": [
+            "StatusPanel"
+          ]
+        },
+        {
+          "source": "@/components/BrainPowerPanel",
+          "specifiers": [
+            "BrainPowerPanel"
+          ]
+        },
+        {
+          "source": "@/lib/animations",
+          "specifiers": [
+            "staggerContainer",
+            "fadeInUp",
+            "EASE_OUT_EXPO"
+          ]
+        }
+      ],
+      "exports": [
+        "Home"
+      ],
+      "totalLines": 332,
+      "hasStructuralAnalysis": true
+    },
+    "prosthetic-arm-simulator/src/components/ArmArena.tsx": {
+      "filePath": "prosthetic-arm-simulator/src/components/ArmArena.tsx",
+      "contentHash": "eb567ed7fc108850f988db8a960e500a903eb22f7cfec66cfbe6a83a0111e03f",
+      "functions": [
+        {
+          "name": "ArmArena",
+          "params": [
+            "{ command, fatigue }"
+          ],
+          "exported": true,
+          "lineCount": 329
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion",
+            "useReducedMotion"
+          ]
+        }
+      ],
+      "exports": [
+        "ArmArena"
+      ],
+      "totalLines": 348,
+      "hasStructuralAnalysis": true
+    },
+    "prosthetic-arm-simulator/src/components/BrainPowerPanel.tsx": {
+      "filePath": "prosthetic-arm-simulator/src/components/BrainPowerPanel.tsx",
+      "contentHash": "f2844f6db2b230dd016d7eabe4b5c6c6895cec08d20b940713114e12d793180b",
+      "functions": [
+        {
+          "name": "PowerBar",
+          "params": [
+            "{ label, range, value, color }"
+          ],
+          "exported": false,
+          "lineCount": 32
+        },
+        {
+          "name": "BrainPowerPanel",
+          "params": [
+            "{ power }"
+          ],
+          "exported": true,
+          "lineCount": 29
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion"
+          ]
+        }
+      ],
+      "exports": [
+        "BrainPowerPanel"
+      ],
+      "totalLines": 85,
+      "hasStructuralAnalysis": true
+    },
+    "prosthetic-arm-simulator/src/components/StatusPanel.tsx": {
+      "filePath": "prosthetic-arm-simulator/src/components/StatusPanel.tsx",
+      "contentHash": "62c5ab3c270f72add52dd7fb26d6ba1d5ae49b72fe7a6efd5e7d3991631d1e0a",
+      "functions": [
+        {
+          "name": "StatRow",
+          "params": [
+            "{\n  label,\n  value,\n  valueColor,\n  icon,\n}"
+          ],
+          "exported": false,
+          "lineCount": 26
+        },
+        {
+          "name": "StatusPanel",
+          "params": [
+            "{\n  command,\n  confidence,\n  signal,\n  fatigue,\n  totalLift,\n  totalIdle,\n  connected,\n}"
+          ],
+          "exported": true,
+          "lineCount": 135
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "AlertTriangle",
+            "CheckCircle"
+          ]
+        }
+      ],
+      "exports": [
+        "StatusPanel"
+      ],
+      "totalLines": 180,
+      "hasStructuralAnalysis": true
+    },
+    "prosthetic-arm-simulator/src/lib/animations.ts": {
+      "filePath": "prosthetic-arm-simulator/src/lib/animations.ts",
+      "contentHash": "ce9c9a0721f764136e4748f10539b06e6f5077d64ce5fb3c29cc274276f2be0a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "SPRING_SMOOTH",
+        "SPRING_SNAPPY",
+        "EASE_OUT_EXPO",
+        "fadeInUp",
+        "staggerContainer"
+      ],
+      "totalLines": 14,
+      "hasStructuralAnalysis": true
+    },
+    "prosthetic-arm-simulator/src/lib/utils.ts": {
+      "filePath": "prosthetic-arm-simulator/src/lib/utils.ts",
+      "contentHash": "4acbc7165a8d54738ff62b51414e772c08fe78434e524e6d8770180d3ba2925f",
+      "functions": [
+        {
+          "name": "cn",
+          "params": [
+            "...inputs"
+          ],
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "clsx",
+          "specifiers": [
+            "ClassValue",
+            "clsx"
+          ]
+        },
+        {
+          "source": "tailwind-merge",
+          "specifiers": [
+            "twMerge"
+          ]
+        }
+      ],
+      "exports": [
+        "cn"
+      ],
+      "totalLines": 7,
+      "hasStructuralAnalysis": true
+    },
+    "prosthetic-arm-simulator/tsconfig.json": {
+      "filePath": "prosthetic-arm-simulator/tsconfig.json",
+      "contentHash": "83d292a6930a317ea31ef48e220097d2ca10c6c505f41d5954795acef48ca3b9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 28,
+      "hasStructuralAnalysis": false
+    },
+    "quick_process.py": {
+      "filePath": "quick_process.py",
+      "contentHash": "4c9235997668a047f8c7ad4fef8d912499a25b337bfa9c9e4821aee14b008ab3",
+      "functions": [
+        {
+          "name": "get_db_power",
+          "params": [
+            "data_1d",
+            "sfreq",
+            "fmin",
+            "fmax"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "extract_features",
+          "params": [
+            "raw"
+          ],
+          "exported": true,
+          "lineCount": 24
+        },
+        {
+          "name": "process_and_store",
+          "params": [],
+          "exported": true,
+          "lineCount": 35
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "mne",
+          "specifiers": [
+            "mne"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "*"
+          ]
+        },
+        {
+          "source": "scipy.signal",
+          "specifiers": [
+            "welch"
+          ]
+        }
+      ],
+      "exports": [
+        "get_db_power",
+        "extract_features",
+        "process_and_store"
+      ],
+      "totalLines": 98,
+      "hasStructuralAnalysis": true
+    },
+    "requirements.txt": {
+      "filePath": "requirements.txt",
+      "contentHash": "4071420d4add462d00c88df9df822ab17b40d11a8f3ea8d50bb164d7556defe2",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 16,
+      "hasStructuralAnalysis": false
+    },
+    "simulate_tgam.py": {
+      "filePath": "simulate_tgam.py",
+      "contentHash": "97070eb87c485a59c7a12a66f25ed6a55249db712e9ef4ebbb5662109e5a391a",
+      "functions": [
+        {
+          "name": "get_db_power",
+          "params": [
+            "data_1d",
+            "sfreq",
+            "fmin",
+            "fmax"
+          ],
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "classes": [
+        {
+          "name": "EEGStreamSimulator",
+          "methods": [
+            "__init__",
+            "setup",
+            "_resolve_source",
+            "_load_and_extract",
+            "get_packet",
+            "run"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 224
+        }
+      ],
+      "imports": [
+        {
+          "source": "socket",
+          "specifiers": [
+            "socket"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "urllib.request",
+          "specifiers": [
+            "urllib.request"
+          ]
+        },
+        {
+          "source": "urllib.error",
+          "specifiers": [
+            "urllib.error"
+          ]
+        },
+        {
+          "source": "mne",
+          "specifiers": [
+            "mne"
+          ]
+        },
+        {
+          "source": "tempfile",
+          "specifiers": [
+            "tempfile"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "*"
+          ]
+        },
+        {
+          "source": "scipy.signal",
+          "specifiers": [
+            "welch"
+          ]
+        }
+      ],
+      "exports": [
+        "get_db_power",
+        "EEGStreamSimulator"
+      ],
+      "totalLines": 275,
+      "hasStructuralAnalysis": true
+    },
+    "train.py": {
+      "filePath": "train.py",
+      "contentHash": "04710c92065c8435762a951b45bacd1961da8c5d61245f1a0ce0e98cfaa02188",
+      "functions": [
+        {
+          "name": "train",
+          "params": [],
+          "exported": true,
+          "lineCount": 115
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "torch.nn",
+          "specifiers": [
+            "nn"
+          ]
+        },
+        {
+          "source": "torch.optim",
+          "specifiers": [
+            "optim"
+          ]
+        },
+        {
+          "source": "torch.utils.data",
+          "specifiers": [
+            "DataLoader",
+            "TensorDataset",
+            "random_split"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "*"
+          ]
+        },
+        {
+          "source": "model",
+          "specifiers": [
+            "EEGClassifier_CNN_LSTM"
+          ]
+        }
+      ],
+      "exports": [
+        "train"
+      ],
+      "totalLines": 129,
+      "hasStructuralAnalysis": true
+    },
+    "train_moabb.py": {
+      "filePath": "train_moabb.py",
+      "contentHash": "ead2641c753abeb8bc00248e56c03ff54c7cba8d848ff129f8c317366b23672a",
+      "functions": [
+        {
+          "name": "download_edf",
+          "params": [
+            "subject_id",
+            "run_id"
+          ],
+          "exported": true,
+          "lineCount": 25
+        },
+        {
+          "name": "extract_epochs_from_edf",
+          "params": [
+            "edf_path",
+            "epoch_samples",
+            "event_aligned",
+            "pick_channels",
+            "artifact_threshold",
+            "return_event_types"
+          ],
+          "exported": true,
+          "lineCount": 84
+        },
+        {
+          "name": "augment_epochs",
+          "params": [
+            "epochs",
+            "labels",
+            "max_jitter",
+            "rng"
+          ],
+          "exported": true,
+          "lineCount": 41
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": true,
+          "lineCount": 318
+        }
+      ],
+      "classes": [
+        {
+          "name": "BandpassFilter",
+          "methods": [
+            "__init__",
+            "fit",
+            "transform"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "FBCSPTransformer",
+          "methods": [
+            "__init__",
+            "fit",
+            "transform"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 31
+        }
+      ],
+      "imports": [
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "pickle",
+          "specifiers": [
+            "pickle"
+          ]
+        },
+        {
+          "source": "warnings",
+          "specifiers": [
+            "warnings"
+          ]
+        },
+        {
+          "source": "urllib.request",
+          "specifiers": [
+            "urllib.request"
+          ]
+        },
+        {
+          "source": "tempfile",
+          "specifiers": [
+            "tempfile"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "sklearn.pipeline",
+          "specifiers": [
+            "Pipeline",
+            "FeatureUnion"
+          ]
+        },
+        {
+          "source": "sklearn.discriminant_analysis",
+          "specifiers": [
+            "LinearDiscriminantAnalysis"
+          ]
+        },
+        {
+          "source": "sklearn.model_selection",
+          "specifiers": [
+            "cross_val_score",
+            "StratifiedKFold"
+          ]
+        },
+        {
+          "source": "sklearn.svm",
+          "specifiers": [
+            "SVC"
+          ]
+        },
+        {
+          "source": "sklearn.calibration",
+          "specifiers": [
+            "CalibratedClassifierCV"
+          ]
+        },
+        {
+          "source": "sklearn.base",
+          "specifiers": [
+            "BaseEstimator",
+            "TransformerMixin"
+          ]
+        },
+        {
+          "source": "pyriemann.estimation",
+          "specifiers": [
+            "Covariances"
+          ]
+        },
+        {
+          "source": "pyriemann.classification",
+          "specifiers": [
+            "MDM"
+          ]
+        },
+        {
+          "source": "pyriemann.tangentspace",
+          "specifiers": [
+            "TangentSpace"
+          ]
+        },
+        {
+          "source": "mne",
+          "specifiers": [
+            "mne"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "MOTOR_CHANNEL_NAMES"
+          ]
+        }
+      ],
+      "exports": [
+        "BandpassFilter",
+        "FBCSPTransformer",
+        "download_edf",
+        "extract_epochs_from_edf",
+        "augment_epochs",
+        "main"
+      ],
+      "totalLines": 620,
+      "hasStructuralAnalysis": true
+    },
+    "universal_model.py": {
+      "filePath": "universal_model.py",
+      "contentHash": "945f095291029b1a984ecad979fd72fdfdae5c4a7a4a13dde269004a9b15c620",
+      "functions": [
+        {
+          "name": "get_universal_model",
+          "params": [
+            "auto_reload"
+          ],
+          "returnType": "UniversalModel",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": true,
+          "lineCount": 80
+        }
+      ],
+      "classes": [
+        {
+          "name": "SafeModelUnpickler",
+          "methods": [
+            "find_class"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "UniversalModel",
+          "methods": [
+            "__init__",
+            "_resolve_model_path",
+            "_resolve_stats_path",
+            "load",
+            "expected_channels",
+            "expected_times",
+            "sampling_rate",
+            "pipeline_name",
+            "cv_accuracy",
+            "class_map",
+            "preprocess_epoch",
+            "predict_proba",
+            "predict",
+            "test_inference",
+            "get_info"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 262
+        }
+      ],
+      "imports": [
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "pickle",
+          "specifiers": [
+            "pickle"
+          ]
+        },
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Optional",
+            "Dict",
+            "Tuple",
+            "Any"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "ROOT_DIR",
+            "MODELS_DIR",
+            "DATA_DIR",
+            "COMMANDS",
+            "N_MOTOR_CHANNELS",
+            "MOTOR_CHANNEL_NAMES"
+          ]
+        }
+      ],
+      "exports": [
+        "SafeModelUnpickler",
+        "UniversalModel",
+        "get_universal_model",
+        "main"
+      ],
+      "totalLines": 467,
+      "hasStructuralAnalysis": true
+    },
+    "wheelchair-simulator/README.md": {
+      "filePath": "wheelchair-simulator/README.md",
+      "contentHash": "743b4f3e845f5bdc65b33600a18873eaee24e53663d9a05b1a2450cb0d8a33f3",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 102,
+      "hasStructuralAnalysis": false
+    },
+    "wheelchair-simulator/eslint.config.mjs": {
+      "filePath": "wheelchair-simulator/eslint.config.mjs",
+      "contentHash": "780ef586c168b5849bf2becda678d266a86899a9e6d18d8197f6a643589ecac9",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "path",
+          "specifiers": [
+            "dirname"
+          ]
+        },
+        {
+          "source": "url",
+          "specifiers": [
+            "fileURLToPath"
+          ]
+        },
+        {
+          "source": "@eslint/eslintrc",
+          "specifiers": [
+            "FlatCompat"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "wheelchair-simulator/next.config.ts": {
+      "filePath": "wheelchair-simulator/next.config.ts",
+      "contentHash": "614bce25b089c3f19b1e17a6346c74b858034040154c6621e7d35303004767cc",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "next",
+          "specifiers": [
+            "NextConfig"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 8,
+      "hasStructuralAnalysis": true
+    },
+    "wheelchair-simulator/npm": {
+      "filePath": "wheelchair-simulator/npm",
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 1,
+      "hasStructuralAnalysis": false
+    },
+    "wheelchair-simulator/package.json": {
+      "filePath": "wheelchair-simulator/package.json",
+      "contentHash": "69dd5cb3a2e2a0072034a628580709aadfd166a2517a5d80ea047d4f09fd0de1",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 33,
+      "hasStructuralAnalysis": false
+    },
+    "wheelchair-simulator/postcss.config.mjs": {
+      "filePath": "wheelchair-simulator/postcss.config.mjs",
+      "contentHash": "141ef24ca27a99d08962210fdf20212d3435fdcfa21b46cd88b44d22f751dfae",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 6,
+      "hasStructuralAnalysis": true
+    },
+    "wheelchair-simulator/src/app/globals.css": {
+      "filePath": "wheelchair-simulator/src/app/globals.css",
+      "contentHash": "6e7849e940c6face15cff98d9972501ffbae9a7ab74439ccf2571202905f3183",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 62,
+      "hasStructuralAnalysis": false
+    },
+    "wheelchair-simulator/src/app/layout.tsx": {
+      "filePath": "wheelchair-simulator/src/app/layout.tsx",
+      "contentHash": "472a2709c59de6520348f861ac3adbf194ef1b7a115ad43412ae6f4c07e41a5f",
+      "functions": [
+        {
+          "name": "RootLayout",
+          "params": [
+            "{\n  children,\n}"
+          ],
+          "exported": true,
+          "lineCount": 13
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "next",
+          "specifiers": [
+            "Metadata"
+          ]
+        },
+        {
+          "source": "next/font/google",
+          "specifiers": [
+            "Syne",
+            "DM_Sans"
+          ]
+        },
+        {
+          "source": "./globals.css",
+          "specifiers": []
+        }
+      ],
+      "exports": [
+        "metadata",
+        "RootLayout"
+      ],
+      "totalLines": 40,
+      "hasStructuralAnalysis": true
+    },
+    "wheelchair-simulator/src/app/page.tsx": {
+      "filePath": "wheelchair-simulator/src/app/page.tsx",
+      "contentHash": "7b9ff979798091d1387052b98c06188a3b45bdf59b464ca50ce3c0645c6f57cb",
+      "functions": [
+        {
+          "name": "Home",
+          "params": [],
+          "exported": true,
+          "lineCount": 292
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useRef",
+            "useState",
+            "useCallback"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion",
+            "AnimatePresence",
+            "useReducedMotion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Brain",
+            "Wifi",
+            "WifiOff"
+          ]
+        },
+        {
+          "source": "@/components/Arena",
+          "specifiers": [
+            "Arena"
+          ]
+        },
+        {
+          "source": "@/components/StatusPanel",
+          "specifiers": [
+            "StatusPanel"
+          ]
+        },
+        {
+          "source": "@/components/BrainPowerPanel",
+          "specifiers": [
+            "BrainPowerPanel"
+          ]
+        },
+        {
+          "source": "@/lib/animations",
+          "specifiers": [
+            "staggerContainer",
+            "fadeInUp",
+            "EASE_OUT_EXPO"
+          ]
+        }
+      ],
+      "exports": [
+        "Home"
+      ],
+      "totalLines": 315,
+      "hasStructuralAnalysis": true
+    },
+    "wheelchair-simulator/src/components/Arena.tsx": {
+      "filePath": "wheelchair-simulator/src/components/Arena.tsx",
+      "contentHash": "02f18be199ebf3f6a02f9c98ec20607e2f5e3e650d2f33e0183274c33e90ea11",
+      "functions": [
+        {
+          "name": "Arena",
+          "params": [
+            "{ command, position, fatigue }"
+          ],
+          "exported": true,
+          "lineCount": 151
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "react",
+          "specifiers": [
+            "useEffect",
+            "useRef"
+          ]
+        },
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion"
+          ]
+        }
+      ],
+      "exports": [
+        "Arena"
+      ],
+      "totalLines": 171,
+      "hasStructuralAnalysis": true
+    },
+    "wheelchair-simulator/src/components/BrainPowerPanel.tsx": {
+      "filePath": "wheelchair-simulator/src/components/BrainPowerPanel.tsx",
+      "contentHash": "ed4307c5b06687ad75a8bc064b9ebc1b7dd82042db46a8c51f2220017ab3894d",
+      "functions": [
+        {
+          "name": "PowerBar",
+          "params": [
+            "{ label, range, value, color }"
+          ],
+          "exported": false,
+          "lineCount": 32
+        },
+        {
+          "name": "BrainPowerPanel",
+          "params": [
+            "{ power }"
+          ],
+          "exported": true,
+          "lineCount": 29
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion"
+          ]
+        }
+      ],
+      "exports": [
+        "BrainPowerPanel"
+      ],
+      "totalLines": 83,
+      "hasStructuralAnalysis": true
+    },
+    "wheelchair-simulator/src/components/StatusPanel.tsx": {
+      "filePath": "wheelchair-simulator/src/components/StatusPanel.tsx",
+      "contentHash": "54d836ae25e6521b85ea9dffef9ff69f7826550345333818ae14ccfbdbcd2791",
+      "functions": [
+        {
+          "name": "StatRow",
+          "params": [
+            "{\n  label,\n  value,\n  valueColor,\n  icon,\n}"
+          ],
+          "exported": false,
+          "lineCount": 26
+        },
+        {
+          "name": "StatusPanel",
+          "params": [
+            "{\n  command,\n  confidence,\n  signal,\n  fatigue,\n  totalFwd,\n  totalIdle,\n  connected,\n}"
+          ],
+          "exported": true,
+          "lineCount": 135
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "framer-motion",
+          "specifiers": [
+            "motion"
+          ]
+        },
+        {
+          "source": "lucide-react",
+          "specifiers": [
+            "Activity",
+            "Zap",
+            "AlertTriangle",
+            "CheckCircle"
+          ]
+        }
+      ],
+      "exports": [
+        "StatusPanel"
+      ],
+      "totalLines": 178,
+      "hasStructuralAnalysis": true
+    },
+    "wheelchair-simulator/src/lib/animations.ts": {
+      "filePath": "wheelchair-simulator/src/lib/animations.ts",
+      "contentHash": "ce9c9a0721f764136e4748f10539b06e6f5077d64ce5fb3c29cc274276f2be0a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "SPRING_SMOOTH",
+        "SPRING_SNAPPY",
+        "EASE_OUT_EXPO",
+        "fadeInUp",
+        "staggerContainer"
+      ],
+      "totalLines": 14,
+      "hasStructuralAnalysis": true
+    },
+    "wheelchair-simulator/src/lib/utils.ts": {
+      "filePath": "wheelchair-simulator/src/lib/utils.ts",
+      "contentHash": "4acbc7165a8d54738ff62b51414e772c08fe78434e524e6d8770180d3ba2925f",
+      "functions": [
+        {
+          "name": "cn",
+          "params": [
+            "...inputs"
+          ],
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "clsx",
+          "specifiers": [
+            "ClassValue",
+            "clsx"
+          ]
+        },
+        {
+          "source": "tailwind-merge",
+          "specifiers": [
+            "twMerge"
+          ]
+        }
+      ],
+      "exports": [
+        "cn"
+      ],
+      "totalLines": 7,
+      "hasStructuralAnalysis": true
+    },
+    "wheelchair-simulator/tsconfig.json": {
+      "filePath": "wheelchair-simulator/tsconfig.json",
+      "contentHash": "83d292a6930a317ea31ef48e220097d2ca10c6c505f41d5954795acef48ca3b9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 28,
+      "hasStructuralAnalysis": false
+    }
+  }
+}
