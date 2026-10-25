@@ -86,6 +86,27 @@ OR one command:
 python demo_mode.py
 ```
 
+## DB6 EMG reproducibility
+
+The offline NinaPro DB6 EMG audit is separate from the active EEG/Riemannian
+demo path. It requires extracted `.mat` sessions under `data\db6_subject`
+and uses the existing Python environment:
+
+```powershell
+python experiments\db6\db6_baseline.py --dir data\db6_subject --out data\db6_subject\baseline
+python experiments\db6\db6_step3c.py --dir data\db6_subject --out data\db6_subject\step3b --skip-matrix
+python -m pytest tests\test_db6_pipeline.py -q
+```
+
+The baseline trains on `S1_D1_T1` repetitions 1--8 and evaluates its held-out
+repetitions 9--12 plus the other available sessions. The reproduced subject-1
+reference is 55.5% mean cross-session accuracy; the offline, unlabeled
+target-session z-score Fix B is 60.1%. Fix B uses all windows in each target
+session to fit calibration statistics, so it is transductive and not a causal
+online result. See [docs/db6_audit_2026-10-25.md](docs/db6_audit_2026-10-25.md)
+and [docs/hardware-readiness.md](docs/hardware-readiness.md) for protocol,
+limitations, and safety gates.
+
 ---
 
 ## 🛠️ Technology Stack
