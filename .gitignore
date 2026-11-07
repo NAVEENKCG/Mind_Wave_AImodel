@@ -44,3 +44,6 @@ prosthetic-arm-simulator/.env*.local
 experiments/db6/data/
 experiments/db6/.venv/
 experiments/db6/*.zip
+
+# DB6 large data files
+data/**/*.mat
