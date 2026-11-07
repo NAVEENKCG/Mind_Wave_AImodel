@@ -62,6 +62,7 @@ except ImportError:
 METHODS = ("raw", "cued-stats", "cued-refit")
 DEFAULT_KS = (0, 1, 2, 4)
 DEFAULT_TAUS = (0.0, 0.6, 0.8)
+RANDOM_SEED = 0
 
 
 def discover_sessions(root):
@@ -155,7 +156,9 @@ def repetition_blocks(path, channels, thr, fs=FS_RAW):
         y = lab_s[starts]
         F = _features(sig, thr)
         blocks.append(dict(
+            session=Path(path).name,
             grasp=int(grasp[start]), rep=int(rep[start]), F=F, y=y, valid=valid,
+            raw_start=int(start), raw_stop=int(stop),
             duration_seconds=(stop - start) / fs, original_start=start / fs,
             original_stop=stop / fs,
         ))
@@ -280,6 +283,7 @@ def run(root, ks=DEFAULT_KS, taus=DEFAULT_TAUS, out=None, fs=FS_RAW):
     max_k = max(ks)
     pool, heldout, counts = choose_split(files, max_k)
     print("Synthetic calibration/replay diagnostic; not chronological live deployment.")
+    print(f"Random seed: {RANDOM_SEED} (no stochastic operation is used)")
     print("Actual repetitions per grasp (common across sessions):", counts)
     print("Split: calibration pool", pool, "| held-out", heldout)
     first_data = load_mat(files[0])

@@ -14,8 +14,11 @@ def blocks():
         for rep in range(1, 6):
             y = np.array([0] * 4 + [grasp] * 6 + [0] * 5)
             result.append(dict(
+                session="S1_D1_T2.mat",
                 grasp=grasp, rep=rep, F=np.full((15, 2), rep + grasp, float),
                 y=y, valid=np.ones(15, bool), duration_seconds=1.0,
+                raw_start=(grasp * 100 + rep) * 2000,
+                raw_stop=(grasp * 100 + rep) * 2000 + 2000,
                 original_start=(grasp * 100 + rep) * 2.0,
                 original_stop=(grasp * 100 + rep) * 2.0 + 1.0,
             ))
@@ -40,12 +43,22 @@ def test_calibration_and_heldout_blocks_are_disjoint_and_heldout_is_common():
     b = blocks()
     pool = {1: [1, 2, 3, 4], 2: [1, 2, 3, 4]}
     heldout = {1: [5], 2: [5]}
-    expected = {(1, 5), (2, 5)}
+    expected = {("S1_D1_T2.mat", 1, 5), ("S1_D1_T2.mat", 2, 5)}
+    heldout_ranges = None
     for k in (0, 1, 2, 4):
-        cal = {(x["grasp"], x["rep"]) for x in c.select_blocks(b, {g: v[:k] for g, v in pool.items()})}
-        ev = {(x["grasp"], x["rep"]) for x in c.select_blocks(b, heldout)}
+        calibration = c.select_blocks(b, {g: v[:k] for g, v in pool.items()})
+        evaluation = c.select_blocks(b, heldout)
+        cal = {(x["session"], x["grasp"], x["rep"]) for x in calibration}
+        ev = {(x["session"], x["grasp"], x["rep"]) for x in evaluation}
+        cal_ranges = {(x["session"], x["raw_start"], x["raw_stop"]) for x in calibration}
+        eval_ranges = {(x["session"], x["raw_start"], x["raw_stop"]) for x in evaluation}
         assert not cal & ev
+        assert not cal_ranges & eval_ranges
         assert ev == expected
+        current_ranges = tuple(sorted(eval_ranges))
+        if heldout_ranges is None:
+            heldout_ranges = current_ranges
+        assert current_ranges == heldout_ranges
 
 
 def test_frozen_fit_does_not_depend_on_evaluation_data_and_leaky_control_fails():
@@ -86,6 +99,36 @@ def test_calibration_windows_are_not_scored():
     fitted = c.fit_conditions(F, y, np.empty((0, 2)), np.empty(0, dtype=int))
     scored = c.evaluate(ev, fitted, [0.0])["raw"][0.0]
     assert scored["n"] == sum(x["valid"].sum() for x in ev)
+
+
+def test_deterministic_label_pairing_selects_exact_blocks():
+    selected = c.select_blocks(blocks(), {1: [2, 4], 2: [1]})
+    assert [(x["grasp"], x["rep"]) for x in selected] == [(1, 2), (1, 4), (2, 1)]
+    assert [x["raw_start"] for x in selected] == [204000, 208000, 402000]
+
+
+def test_same_frozen_fit_and_evaluation_are_deterministic():
+    rng = np.random.default_rng(7)
+    train_F = rng.normal(size=(100, 3))
+    train_y = np.tile([0, 1], 50)
+    cal_F = rng.normal(size=(20, 3))
+    cal_y = np.tile([0, 1], 10)
+    fitted1 = c.fit_conditions(train_F, train_y, cal_F, cal_y)
+    fitted2 = c.fit_conditions(train_F, train_y, cal_F, cal_y)
+    block = blocks()[0].copy()
+    block["F"] = np.pad(block["F"], ((0, 0), (0, 1)))
+    result1 = c.evaluate([block], fitted1, [0.0, 0.6, 0.8])
+    result2 = c.evaluate([block], fitted2, [0.0, 0.6, 0.8])
+    assert result1 == result2
+
+
+def test_identical_prediction_streams_have_identical_metrics():
+    block = blocks()[0]
+    classes = np.array([0, 1])
+    proba = np.tile([[0.7, 0.3]], (len(block["F"]), 1))
+    first = c._score_blocks([(block, proba, classes)], [0.0, 0.6, 0.8])
+    second = c._score_blocks([(block, proba.copy(), classes.copy())], [0.0, 0.6, 0.8])
+    assert first == second
 
 
 def test_block_scoring_resets_majority_and_has_no_join_window():
