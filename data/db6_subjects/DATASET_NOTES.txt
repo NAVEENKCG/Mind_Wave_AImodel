@@ -1,0 +1,35 @@
+﻿Dataset: NinaPro DB6
+Source page: https://ninapro.hevs.ch/instructions/DB6.html
+Date: 2026-11-10
+
+Download URLs:
+https://ninapro.hevs.ch/files/DB6_Preproc/DB6_s2_a.zip
+https://ninapro.hevs.ch/files/DB6_Preproc/DB6_s2_b.zip
+https://ninapro.hevs.ch/files/DB6_Preproc/DB6_s3_a.zip
+https://ninapro.hevs.ch/files/DB6_Preproc/DB6_s3_b.zip
+https://ninapro.hevs.ch/files/DB6_Preproc/DB6_s4_a.zip
+https://ninapro.hevs.ch/files/DB6_Preproc/DB6_s4_b.zip
+
+ZIP filename | size in bytes | SHA-256
+DB6_s2_a.zip | 1120941871 | 4436FAEC5EA0F8DAB97ACACAC0186D78BED57E3A219A21E2C78188C821EE81D5
+DB6_s2_b.zip | 896722783 | C124F10CDFD8D8BD04E78F55C01DB266689EB1572BECF9450FFD9E8A9CB1FB98
+DB6_s3_a.zip | 1302960318 | 07C08284FC5A654E27A4A98F37984F8B0F94A9D8FE0ABBE857F8E271CA48517A
+DB6_s3_b.zip | 853693771 | B209DDDAA8324D6B6A49348F9DCE557BA02A00E0978878D16B6C9F686E1DC5F4
+DB6_s4_a.zip | 1297775784 | 602612B236BF327740672C263DDCF137151F4374A562E29132D739AF7FB5D461
+DB6_s4_b.zip | 872206270 | 36733D2E2F8A3F83ECDAA218AF5AE7168956DB67319E63237300F8ADE103F726
+
+Temporary ZIP directory: C:\Users\NAVEEN~1\AppData\Local\Temp\db6_zips
+Re-download comparison directory: C:\Users\NAVEEN~1\AppData\Local\Temp\db6_zips_check
+
+Citation:
+Palermo et al., "Analysis of the repeatability of grasp recognition for hand robotic prosthesis control based on sEMG data", IEEE ICORR, 2017.
+
+ANOMALIES
+S2_D2_T2.mat is 32519877 bytes (31.01 MB), outside the requested 95-427 MB range.
+ZIP directory inspection found it in DB6_s2_a.zip as DB6_s2_a/S2_D2_T2.mat.
+ZIP compressed length: 32500987 bytes.
+ZIP uncompressed length: 32519877 bytes.
+Extracted file length: 32519877 bytes.
+The ZIP uncompressed length matches the extracted file length.
+A separate re-download to db6_zips_check produced the same SHA-256 as the first download.
+
